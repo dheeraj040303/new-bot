@@ -3,7 +3,6 @@ import json
 import re
 import time
 import requests
-from flask import Flask, request
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot, MessageEntity
 from telegram.ext import *
 from telethon.tl.types import MessageEntityTextUrl
@@ -19,8 +18,8 @@ TOKEN = '5614384317:AAHGylxcrCqfJ-XvuNGmxF_mrFgqhKuxljw'
 api_id = 27575247
 api_hash = '44f4ce1ee458039f7500b0bce10fbc63'
 user_name = 'two_backup'
-
-client = TelegramClient('toda', api_id, api_hash)
+session_string = '1BVtsOHIBu4K9YVtXKgyrCz2dQnZeev8ZfktG6qTHQd46vEkOUAuneyjZH8OsEwDLL4YKbW42VYk0HpjJnGFGXPgoYZnotkCOsPdODi_7sp0UhIaugktKyhUE8j4pu7JQ_b9EM1PFqTZxkHqi_yFAP3gzvXit81YgtWCuPnRQpoOmUj3gChPsxUgL-PWPY242b6eaLJ22MzpsdUp7VX_K41mKcUkpBqbpBE_JfoCLC3xmGid-a-g77KC8ufWABzet-ULWiI6Na9OHnO2JgtkMd8eHIOTwS3yoNaXMPjioC9KP5rQi2YO7TbRfu33sQjFjKNpWgAICy7uLUmeRdw2fIgmM9cGtmn8='
+client = TelegramClient(session_string, api_id, api_hash)
 client.start()
 entity = client.get_entity("backup_linker")
 
@@ -192,8 +191,8 @@ async def error(update, context):
     print(f"Update {update} cause error {context.error}")
 
 
+app = ApplicationBuilder().token(TOKEN).build()
 def main():
-    app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("course", course))
@@ -202,27 +201,9 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT, message_handler))
     app.add_error_handler(error)
     app.run_polling()
-    appp = Flask(__name__)
-
-    @appp.route('/')
-    def index():
-        return 'Hello World!'
-
-    @appp.route('/{}'.format(TOKEN), methods=['GET', 'POST'])
-    def respond():
-        update = Update.de_json(request.get_json(force=True), app.bot)
-        return 'ok'
-
-    @appp.route('/setwebhook', methods=['GET', 'POST'])
-    def set_webhook():
-        s = app.bot.setWebhook('{URL}/{HOOK}'.format(URL='https://movie-bot-ytk5.vercel.app/', HOOK=TOKEN))
-        if s:
-            return "webhook setup ok"
-        else:
-            return "webhook setup failed"
-
 
 main()
+
 
 
 
