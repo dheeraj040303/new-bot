@@ -3,7 +3,7 @@ import json
 import re
 import time
 import requests
-
+from flask import Flask, request
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot, MessageEntity
 from telegram.ext import *
 from telethon.tl.types import MessageEntityTextUrl
@@ -202,8 +202,27 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT, message_handler))
     app.add_error_handler(error)
     app.run_polling()
+    appp = Flask(__name__)
 
+    @appp.route('/')
+    def index():
+        return 'Hello World!'
+
+    @appp.route('/{}'.format(TOKEN), methods=['GET', 'POST'])
+    def respond():
+        update = Update.de_json(request.get_json(force=True), app.bot)
+        return 'ok'
+
+    @appp.route('/setwebhook', methods=['GET', 'POST'])
+    def set_webhook():
+        s = app.bot.setWebhook('{URL}/{HOOK}'.format(URL='https://movie-bot-u86i.vercel.app/', HOOK=TOKEN))
+        if s:
+            return "webhook setup ok"
+        else:
+            return "webhook setup failed"
 
 
 main()
+
+
 
