@@ -215,7 +215,7 @@ def main():
 
     @appp.route('/setwebhook', methods=['GET', 'POST'])
     def set_webhook():
-        s = app.bot.setWebhook('{URL}/{HOOK}'.format(URL='https://movie-bot-u86i.vercel.app/', HOOK=TOKEN))
+        s = app.bot.setWebhook('{URL}/{HOOK}'.format(URL='https://movie-bot-ytk5.vercel.app/', HOOK=TOKEN))
         if s:
             return "webhook setup ok"
         else:
