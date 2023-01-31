@@ -25,14 +25,11 @@ client.start()
 entity = client.get_entity("backup_linker")
 
 
-
-
 async def start(update, context):
     await update.message.reply_text("Welcome to linkerin! Type /help for more information.", reply_markup=InlineKeyboardMarkup([
         [InlineKeyboardButton("LinkerIn", url='https://linkerin.ga')],
         [InlineKeyboardButton("About", url='https://linkerin.ga/about')]
     ]))
-
 
 class AsyncIter:
     def __init__(self, items):    
