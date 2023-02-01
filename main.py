@@ -19,7 +19,7 @@ api_id = 27575247
 api_hash = '44f4ce1ee458039f7500b0bce10fbc63'
 user_name = 'two_backup'
 session_string = '1BVtsOHIBu4K9YVtXKgyrCz2dQnZeev8ZfktG6qTHQd46vEkOUAuneyjZH8OsEwDLL4YKbW42VYk0HpjJnGFGXPgoYZnotkCOsPdODi_7sp0UhIaugktKyhUE8j4pu7JQ_b9EM1PFqTZxkHqi_yFAP3gzvXit81YgtWCuPnRQpoOmUj3gChPsxUgL-PWPY242b6eaLJ22MzpsdUp7VX_K41mKcUkpBqbpBE_JfoCLC3xmGid-a-g77KC8ufWABzet-ULWiI6Na9OHnO2JgtkMd8eHIOTwS3yoNaXMPjioC9KP5rQi2YO7TbRfu33sQjFjKNpWgAICy7uLUmeRdw2fIgmM9cGtmn8='
-client = TelegramClient(session_string, api_id, api_hash)
+client = TelegramClient("toda", api_id, api_hash)
 client.start()
 entity = client.get_entity("backup_linker")
 
