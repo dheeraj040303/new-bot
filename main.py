@@ -143,10 +143,10 @@ async def message_handler(update, context):
     # print(mov)
     seen = []
     async for m in mov:
-        print(m)
-        if m in seen:
+        print(m.message)
+        if m.message in seen:
             continue
-        seen.append(m)
+        seen.append(m.message)
         if isinstance(m.entities, type(None)):
             continue
         elif isinstance(m.entities[0], MessageEntityTextUrl):
@@ -163,14 +163,17 @@ async def message_handler(update, context):
             for i in range(len(links)):
                 if not links[i].find('t.me') == -1:
                     continue
-                response = requests.get(
-                    f'https://mdiskshortner.in/api?api=2051f08cab4bb3bce088f884d1d9c4ad60fb6a60&url={links[i]}')
-                if response.status_code == 200:
-                    data = response.json()
-                    print(data)
-                    buttons.append([InlineKeyboardButton(url=data['shortenedUrl'],
+                # response = requests.get(
+                #     f'https://mdiskshortner.in/api?api=2051f08cab4bb3bce088f884d1d9c4ad60fb6a60&url=https://linkerin.ga/blog/63c3f2375ec080775ec71186?q={links[i]}')
+                # if response.status_code == 200:
+                #     data = response.json()
+                #     print(data)
+                #     buttons.append([InlineKeyboardButton(url=data['shortenedUrl'],
+                #                                      text=f'{i + 1}. {m.message.splitlines()[0].strip()}...')])
+                buttons.append([InlineKeyboardButton(url=f"https://linkerin.ga/blog/63c3f2375ec080775ec71186?q={links[i]}",
                                                      text=f'{i + 1}. {m.message.splitlines()[0].strip()}...')])
-
+            if not len(buttons):
+                continue
             await update.message.reply_text(text="These are your results", reply_markup=InlineKeyboardMarkup(
                 buttons
             ))
