@@ -171,7 +171,7 @@ async def message_handler(update, context):
                         current_line = lines[line_i][:index]
                         if index < 2 or not current_line.find('Link') == -1:
                             current_line = lines[line_i - 1]
-                buttons.append([InlineKeyboardButton(url=f"https://linkerin.vercel.app /blog/63c3f2375ec080775ec71186?q={links[i]}",
+                buttons.append([InlineKeyboardButton(url=f"https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={links[i]}",
                                                      text=f'{i + 1}. ⚡️{current_line}  Click here 👉'.strip())])
             if not len(buttons):
                 continue
