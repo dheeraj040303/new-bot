@@ -1,9 +1,10 @@
 import datetime
 import json
+import time
 import re
 import time
 import requests
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot, MessageEntity
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot, MessageEntity ,InputMediaPhoto
 from telegram.ext import *
 from telethon.tl.types import MessageEntityTextUrl
 
@@ -23,7 +24,9 @@ client = TelegramClient("toa", api_id, api_hash)
 client.start()
 entity = client.get_entity("backup_linker")
 
-
+current_page = 0
+messagee = None
+actual_buttons = []
 async def start(update, context):
     await update.message.reply_text("Welcome to linkerin! Type /help for more information.", reply_markup=InlineKeyboardMarkup([
         [InlineKeyboardButton("LinkerIn", url='https://linkerin.ga')],
@@ -56,41 +59,67 @@ async def extract_link(string):
     else:
         return links
 
+async def button_callback(update, context):
+    global current_page
+    query = update.callback_query
+    if query.data == 'previous':
+        current_page -= 1
+    elif query.data == 'next':
+        current_page += 1
+    else:
+        # Handle button press here
+        pass
 
-async def movie(update, context):
+    keyboard = getKeyboard()
+    await query.edit_message_reply_markup(reply_markup=keyboard)
+def getKeyboard():
+    page_buttons = actual_buttons[current_page*8:(current_page + 1)*8]
+    keyboard = []
+    for b in page_buttons:
+        keyboard.append([InlineKeyboardButton(text=b['text'], url=b['url'])])
+    previous_button = InlineKeyboardButton('<< Previous', callback_data='previous')
+    next_button = InlineKeyboardButton('Next >>', callback_data='next')
+
+    # Add next and previous buttons to keyboard
+    row = []
+    if current_page > 0:
+        row.append(previous_button)
+    if (current_page + 1) * 8 < len(actual_buttons):
+        row.append(next_button)
+    if row:
+        keyboard.append(row)
+    return InlineKeyboardMarkup(keyboard)
+async def message_handler(update, context):
+    global actual_buttons, messagee
+    actual_buttons = []
     status = 1
-    search_query = ""
-    for i in context.args:
-        search_query += f" {i.upper()}"
-    await update.message.reply_text("Cooking results...")
-    await update.message.reply_text("Almost done...")
+    search_query = str(update.message.text)
     mov = client.iter_messages('backup_linker', search=search_query.upper())
     print(mov)
-    mov2 = client.iter_messages('blinkeringa', search=search_query.upper())
+    seen = []
     async for m in mov:
         print(m)
-        if isinstance(m.entities[0], MessageEntityTextUrl):
+        if isinstance(m.entities, MessageEntityTextUrl):
             await update.message.reply_text(f"{m.message.splitlines()[0]}\n{m.entities[0].url}")
         else:
             links = await extract_link(str(m.message))
-            if not links:
-                continue
-            buttons = []
-            for i in range(len(links)):
-                if not links[i].find('t.me') == -1:
-                    status = 0
-                    break
-                response = requests.get(f'https://mdiskshortner.in/api?api=2051f08cab4bb3bce088f884d1d9c4ad60fb6a60&url={links[i]}&alias=CustomAlias')
-                if response.status_code == 200:
-                    data = await response.json()
-                    print(data)
-                    buttons.append([InlineKeyboardButton(url=data.shortenedUrl, text=f'{m.message.splitlines()[0].strip()}...{(i + 1)*360}P')])
-            if not status:
-                status = 1
-                continue
-            await update.message.reply_text("These are your results", reply_markup=InlineKeyboardMarkup(
-                    buttons
-            ))
+            lines = m.message.splitlines()
+            title = lines[0]
+            for link in links:
+                if link in seen:
+                    continue
+                seen.append(link)
+                if link.find('t.me') == -1:
+                    for line_i in range(len(lines)):
+                        index = lines[line_i].find(link)
+                        if not index == -1:
+                            current_line = lines[line_i][:index]
+                            if index < 2 or not current_line.find('Link') == -1:
+                                current_line = lines[line_i - 1]
+                            actual_buttons.append({'text': f' ⚡️{title[:20]} ➠ {current_line} 👉', 'url': link})
+    print(actual_buttons)
+    messagee = await update.message.reply_text(text=f"✅ *RESULTS FOR ➠ {search_query.upper()}*", reply_markup=getKeyboard(), parse_mode='MarkdownV2')
+
     if not mov:
         await update.message.reply_text(f"No results founds...\n{search_query.strip()} will be added within 5 mins...\nCheck later...")
         async with client.conversation(entity='blinkeringa') as conv:
@@ -128,9 +157,12 @@ async def help_command(update, context):
     await update.message.reply_text("1. Use /start to start the bot\n2. Use /course + course_name to get the course link")
 
 
-async def message_handler(update, context):
+async def movie(update, context):
     count = 1
-    search_query = str(update.message.text)
+    search_query = ""
+    for i in context.args:
+        search_query += f" {i.upper()}"
+
     print(search_query)
     status = 1
     mov = client.iter_messages('backup_linker', search=search_query.upper())
@@ -172,7 +204,7 @@ async def message_handler(update, context):
                         if index < 2 or not current_line.find('Link') == -1:
                             current_line = lines[line_i - 1]
                 buttons.append([InlineKeyboardButton(url=f"https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={links[i]}",
-                                                     text=f'{i + 1}. ⚡️{current_line}  Click here 👉'.strip())])
+                                                     text=f'{i + 1}. ⚡️{current_line} ➠ Click here 👉'.strip())])
             if not len(buttons):
                 continue
             await update.message.reply_text(text=f"✅ RESULT {count}\n\n🎬 {title} ", reply_markup=InlineKeyboardMarkup(
@@ -207,6 +239,7 @@ def main():
     app.add_handler(CommandHandler("movie", movie))
     app.add_handler(CommandHandler('flood', flood))
     app.add_handler(MessageHandler(filters.TEXT, message_handler))
+    app.add_handler(CallbackQueryHandler(button_callback))
     app.add_error_handler(error)
     app.run_polling()
 
