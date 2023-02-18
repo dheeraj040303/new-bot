@@ -47,14 +47,14 @@ async def link_to_hyperlink(string):
 
 
 async def extract_link(string):
-    """
-    It takes a string and returns a list of all the URLs in that string
-
-    :param string: The string to search for links in
-    :return: A list of urls
-    """
+    link_regex = re.compile('((https?):(( //) | (\\\\))+([\w\d:  # @%/;$()~_?\+-=\\\.&](#!)?)*)', re.DOTALL)
+    links = re.findall(link_regex, string)
+    print(string)
     urls = extractor.find_urls(string)
-    return urls
+    if len(urls):
+        return urls
+    else:
+        return links
 
 
 async def movie(update, context):
@@ -72,7 +72,7 @@ async def movie(update, context):
         if isinstance(m.entities[0], MessageEntityTextUrl):
             await update.message.reply_text(f"{m.message.splitlines()[0]}\n{m.entities[0].url}")
         else:
-            links = await extract_link(m.message)
+            links = await extract_link(str(m.message))
             if not links:
                 continue
             buttons = []
@@ -127,15 +127,9 @@ async def course(update, context):
 async def help_command(update, context):
     await update.message.reply_text("1. Use /start to start the bot\n2. Use /course + course_name to get the course link")
 
-async def remove_duplicates(array_of_objects):
-  seen = set()
-  unique = []
-  async for obj in array_of_objects:
-    if obj not in seen:
-      unique.append(obj)
-      seen.add(obj)
-  return unique
+
 async def message_handler(update, context):
+    count = 1
     search_query = str(update.message.text)
     print(search_query)
     status = 1
@@ -143,24 +137,25 @@ async def message_handler(update, context):
     # print(mov)
     seen = []
     async for m in mov:
-        print(m.message)
         if m.message in seen:
             continue
-        seen.append(m.message)
+        seen.append(str(m.message))
+        title = m.message.splitlines()[0]
         if isinstance(m.entities, type(None)):
             continue
         elif isinstance(m.entities[0], MessageEntityTextUrl):
-            await update.message.reply_text(f"{m.message.splitlines()[0]}\n{m.entities[0].url}")
+            await update.message.reply_text(f"✅ RESULT {count}\n\n{m.entities[0].url}")
             return
         else:
             links = await extract_link(m.message)
-            print(links)
+            lines = m.message.splitlines()
             if not links:
                 continue
             if not status:
                 continue
             buttons = []
             for i in range(len(links)):
+                current_line = title
                 if not links[i].find('t.me') == -1:
                     continue
                 # response = requests.get(
@@ -170,13 +165,22 @@ async def message_handler(update, context):
                 #     print(data)
                 #     buttons.append([InlineKeyboardButton(url=data['shortenedUrl'],
                 #                                      text=f'{i + 1}. {m.message.splitlines()[0].strip()}...')])
-                buttons.append([InlineKeyboardButton(url=f"https://linkerin.ga/blog/63c3f2375ec080775ec71186?q={links[i]}",
-                                                     text=f'{i + 1}. {m.message.splitlines()[0].strip()}...')])
+                for line_i in range(len(lines)):
+                    index = lines[line_i].find(links[i])
+                    if not index == -1:
+                        current_line = lines[line_i][:index]
+                        if index < 2 or not current_line.find('Link') == -1:
+                            current_line = lines[line_i - 1]
+                buttons.append([InlineKeyboardButton(url=f"https://linkerin.vercel.app /blog/63c3f2375ec080775ec71186?q={links[i]}",
+                                                     text=f'{i + 1}. ⚡️{current_line}  Click here 👉'.strip())])
             if not len(buttons):
                 continue
-            await update.message.reply_text(text="These are your results", reply_markup=InlineKeyboardMarkup(
+            await update.message.reply_text(text=f"✅ RESULT {count}\n\n🎬 {title} ", reply_markup=InlineKeyboardMarkup(
                 buttons
             ))
+            if count > 4:
+                status = 0
+            count = count + 1
     if not mov:
         return
         await update.message.reply_text(
