@@ -1,13 +1,14 @@
 import datetime
 import json
 import time
+import threading
+import asyncio
 import re
 import time
 import requests
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot, MessageEntity ,InputMediaPhoto
 from telegram.ext import *
 from telethon.tl.types import MessageEntityTextUrl
-from page import Page
 import response as R
 from telethon import TelegramClient, sync
 from urlextract import URLExtract
@@ -102,13 +103,14 @@ async def extract_link(string):
         return links
 
 
-def delete_message(context):
-    # Extract the chat ID and message ID from the context
-    print('fuck')
-    chat_id, message_id = context.job.context
+async def delete_message(message):
+    await message.delete()
 
-    # Delete the message
-    context.bot.delete_message(chat_id=chat_id, message_id=message_id)
+def wrapper(message, id):
+    global but
+    asyncio.run(delete_message(message))
+    del(but[str(id)])
+
 async def message_handler(update, context):
     global but, message_id, chat_id
     id = update.message.id
@@ -142,7 +144,8 @@ async def message_handler(update, context):
     if b:
         mes = await update.message.reply_text(text=f"🍿 *RESULTS FOR ➠ {search_query.upper()}*", reply_markup=getKeyboard(id), parse_mode='MarkdownV2')
         message_id.append(mes.message_id)
-
+        t = threading.Timer(20.0, wrapper, args=[mes, id])
+        t.start()
     if not mov:
         await update.message.reply_text(f"No results founds...\n{search_query.strip()} will be added within 5 mins...\nCheck later...")
         async with client.conversation(entity='blinkeringa') as conv:
@@ -155,9 +158,10 @@ async def message_handler(update, context):
 
 
 async def flood(update, context):
+    global message_id
     for m in message_id:
         await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=m)
-
+    message_id = []
 
 async def course(update, context):
     search_query = ""
