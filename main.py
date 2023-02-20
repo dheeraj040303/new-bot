@@ -7,7 +7,7 @@ import requests
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot, MessageEntity ,InputMediaPhoto
 from telegram.ext import *
 from telethon.tl.types import MessageEntityTextUrl
-
+from page import Page
 import response as R
 from telethon import TelegramClient, sync
 from urlextract import URLExtract
@@ -24,9 +24,11 @@ client = TelegramClient("toa", api_id, api_hash)
 client.start()
 entity = client.get_entity("backup_linker")
 
-current_page = 0
+app = ApplicationBuilder().token(TOKEN).build()
 messagee = None
-actual_buttons = []
+but = {}
+message_id = []
+chat_id = None
 async def start(update, context):
     await update.message.reply_text("Welcome to linkerin! Type /help for more information.", reply_markup=InlineKeyboardMarkup([
         [InlineKeyboardButton("LinkerIn", url='https://linkerin.ga')],
@@ -42,6 +44,7 @@ class AsyncIter:
             yield item    
 
 
+
 async def link_to_hyperlink(string):
     http_links = await extract_link(string)
     async for link in AsyncIter(http_links):
@@ -49,56 +52,72 @@ async def link_to_hyperlink(string):
     return string
 
 
+async def button_callback( update, context):
+    global but
+    query = update.callback_query
+    id = str(query.data).split('_')[1]
+    print(query.data)
+    if query.data == f'previous_{id}':
+        print('pressed')
+        but[id]['c_p'] -= 1
+        keyboard = getKeyboard(id)
+        await query.edit_message_reply_markup(reply_markup=keyboard)
+    elif query.data == f'next_{id}':
+        but[id]['c_p'] += 1
+        keyboard = getKeyboard(id)
+        await query.edit_message_reply_markup(reply_markup=keyboard)
+    else:
+        # Handle button press here
+        pass
+
+
+
+def getKeyboard(id):
+    page_buttons = but[str(id)]['a_b'][but[str(id)]['c_p'] * 8:(but[str(id)]['c_p'] + 1) * 8]
+    keyboard = []
+    for b in page_buttons:
+        keyboard.append([InlineKeyboardButton(text=b['text'], url=b['url'])])
+    previous_button = InlineKeyboardButton('<< Previous', callback_data=f'previous_{id}')
+    next_button = InlineKeyboardButton('Next >>', callback_data=f'next_{id}')
+
+    # Add next and previous buttons to keyboard
+    row = []
+    if but[str(id)]['c_p'] > 0:
+        row.append(previous_button)
+    if (but[str(id)]['c_p'] + 1) * 8 < len(but[str(id)]['a_b']):
+        row.append(next_button)
+    if row:
+        keyboard.append(row)
+    return InlineKeyboardMarkup(keyboard)
+
+
+
 async def extract_link(string):
     link_regex = re.compile('((https?):(( //) | (\\\\))+([\w\d:  # @%/;$()~_?\+-=\\\.&](#!)?)*)', re.DOTALL)
     links = re.findall(link_regex, string)
-    print(string)
     urls = extractor.find_urls(string)
     if len(urls):
         return urls
     else:
         return links
 
-async def button_callback(update, context):
-    global current_page
-    query = update.callback_query
-    if query.data == 'previous':
-        current_page -= 1
-    elif query.data == 'next':
-        current_page += 1
-    else:
-        # Handle button press here
-        pass
 
-    keyboard = getKeyboard()
-    await query.edit_message_reply_markup(reply_markup=keyboard)
-def getKeyboard():
-    page_buttons = actual_buttons[current_page*8:(current_page + 1)*8]
-    keyboard = []
-    for b in page_buttons:
-        keyboard.append([InlineKeyboardButton(text=b['text'], url=b['url'])])
-    previous_button = InlineKeyboardButton('<< Previous', callback_data='previous')
-    next_button = InlineKeyboardButton('Next >>', callback_data='next')
+def delete_message(context):
+    # Extract the chat ID and message ID from the context
+    print('fuck')
+    chat_id, message_id = context.job.context
 
-    # Add next and previous buttons to keyboard
-    row = []
-    if current_page > 0:
-        row.append(previous_button)
-    if (current_page + 1) * 8 < len(actual_buttons):
-        row.append(next_button)
-    if row:
-        keyboard.append(row)
-    return InlineKeyboardMarkup(keyboard)
+    # Delete the message
+    context.bot.delete_message(chat_id=chat_id, message_id=message_id)
 async def message_handler(update, context):
-    global actual_buttons, messagee
-    actual_buttons = []
+    global but, message_id, chat_id
+    id = update.message.id
     status = 1
     search_query = str(update.message.text)
     mov = client.iter_messages('backup_linker', search=search_query.upper())
-    print(mov)
     seen = []
+    b= []
     async for m in mov:
-        print(m)
         if isinstance(m.entities, MessageEntityTextUrl):
             await update.message.reply_text(f"{m.message.splitlines()[0]}\n{m.entities[0].url}")
         else:
@@ -116,9 +135,13 @@ async def message_handler(update, context):
                             current_line = lines[line_i][:index]
                             if index < 2 or not current_line.find('Link') == -1:
                                 current_line = lines[line_i - 1]
-                            actual_buttons.append({'text': f' ⚡️{title[:20]} ➠ {current_line} 👉', 'url': link})
-    print(actual_buttons)
-    messagee = await update.message.reply_text(text=f"✅ *RESULTS FOR ➠ {search_query.upper()}*", reply_markup=getKeyboard(), parse_mode='MarkdownV2')
+                            b.append({'text': f'🎬 {title[:20]} ➠ {current_line} 🎬', 'url': link})
+    but[str(id)] = {'a_b': b, 'c_p': 0}
+    app.add_handler(CallbackQueryHandler(button_callback))
+    print(getKeyboard(id))
+    if b:
+        mes = await update.message.reply_text(text=f"🍿 *RESULTS FOR ➠ {search_query.upper()}*", reply_markup=getKeyboard(id), parse_mode='MarkdownV2')
+        message_id.append(mes.message_id)
 
     if not mov:
         await update.message.reply_text(f"No results founds...\n{search_query.strip()} will be added within 5 mins...\nCheck later...")
@@ -132,10 +155,8 @@ async def message_handler(update, context):
 
 
 async def flood(update, context):
-    messages = client.iter_messages("latest2022newmovies", limit=50)
-    async for m in messages:
-        await client.send_message("backup_linker", message=m)
-    await update.message.reply_text("successfully flooded")
+    for m in message_id:
+        await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=m)
 
 
 async def course(update, context):
@@ -232,14 +253,12 @@ async def error(update, context):
 
 
 def main():
-    app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("course", course))
     app.add_handler(CommandHandler("movie", movie))
     app.add_handler(CommandHandler('flood', flood))
     app.add_handler(MessageHandler(filters.TEXT, message_handler))
-    app.add_handler(CallbackQueryHandler(button_callback))
     app.add_error_handler(error)
     app.run_polling()
 
