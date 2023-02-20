@@ -103,15 +103,15 @@ async def extract_link(string):
         return links
 
 
-async def delete_message(message):
+async def delete_message(message, id):
     await message.delete()
 
 def wrapper(message, id):
-    global but
-    asyncio.run(delete_message(message))
-    del(but[str(id)])
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(delete_message(message, id))
 
-async def message_handler(update, context):
+async def movie(update, context):
     global but, message_id, chat_id
     id = update.message.id
     status = 1
@@ -137,7 +137,7 @@ async def message_handler(update, context):
                             current_line = lines[line_i][:index]
                             if index < 2 or not current_line.find('Link') == -1:
                                 current_line = lines[line_i - 1]
-                            b.append({'text': f'🎬 {title[:20]} ➠ {current_line} 🎬', 'url': link})
+                            b.append({'text': f'🎬 {title[:20]} ➠ {current_line} 🎬', 'url': f'https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={link}'})
     but[str(id)] = {'a_b': b, 'c_p': 0}
     app.add_handler(CallbackQueryHandler(button_callback))
     print(getKeyboard(id))
@@ -182,13 +182,9 @@ async def help_command(update, context):
     await update.message.reply_text("1. Use /start to start the bot\n2. Use /course + course_name to get the course link")
 
 
-async def movie(update, context):
+async def message_handler(update, context):
     count = 1
-    search_query = ""
-    for i in context.args:
-        search_query += f" {i.upper()}"
-
-    print(search_query)
+    search_query = str(update.message.text)
     status = 1
     mov = client.iter_messages('backup_linker', search=search_query.upper())
     # print(mov)
