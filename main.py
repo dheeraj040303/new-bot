@@ -211,13 +211,11 @@ async def message_handler(update, context):
                 current_line = title
                 if not links[i].find('t.me') == -1:
                     continue
-                # response = requests.get(
-                #     f'https://mdiskshortner.in/api?api=2051f08cab4bb3bce088f884d1d9c4ad60fb6a60&url=https://linkerin.ga/blog/63c3f2375ec080775ec71186?q={links[i]}')
-                # if response.status_code == 200:
-                #     data = response.json()
-                #     print(data)
-                #     buttons.append([InlineKeyboardButton(url=data['shortenedUrl'],
-                #                                      text=f'{i + 1}. {m.message.splitlines()[0].strip()}...')])
+                response = requests.get(
+                    f'https://oggylink.com/api?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={links[i]}')
+                if response.status_code == 200:
+                    data = response.json()
+                    links[i] = data['shortenedUrl']
                 for line_i in range(len(lines)):
                     index = lines[line_i].find(links[i])
                     if not index == -1:
