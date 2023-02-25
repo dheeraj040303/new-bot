@@ -24,7 +24,7 @@ session_string = '1BVtsOKEBuzhwIpU_AuhlauBM9-30gEf7-jovu5m8AdAkBhWhof7wshA1ES4kW
 client = TelegramClient("toa", api_id, api_hash)
 client.start()
 entity = client.get_entity("backup_linker")
-
+loop = asyncio.new_event_loop()
 app = ApplicationBuilder().token(TOKEN).build()
 messagee = None
 but = {}
@@ -78,8 +78,8 @@ def getKeyboard(id):
     keyboard = []
     for b in page_buttons:
         keyboard.append([InlineKeyboardButton(text=b['text'], url=b['url'])])
-    previous_button = InlineKeyboardButton('<< Previous', callback_data=f'previous_{id}')
-    next_button = InlineKeyboardButton('Next >>', callback_data=f'next_{id}')
+    previous_button = InlineKeyboardButton('🡸 Previous', callback_data=f'previous_{id}')
+    next_button = InlineKeyboardButton('Next 🡺', callback_data=f'next_{id}')
 
     # Add next and previous buttons to keyboard
     row = []
@@ -104,21 +104,36 @@ async def extract_link(string):
 
 
 async def delete_message(message, id):
+    # create an event
+    global but
+    await asyncio.sleep(60)
     await message.delete()
+    del but[str(id)]
+    print(but)
+    # wait for the event to be set
+
 
 def wrapper(message, id):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(delete_message(message, id))
+def stop_loop():
+    loop.stop()
 
-async def movie(update, context):
-    global but, message_id, chat_id
+async def send_initial(update, context):
+    mes = await update.message.reply_text(f'Searching for "{str(update.message.text)}" 🔍')
+    await asyncio.sleep(1)
+    await mes.delete()
+async def message_handler(update, context):
+    global but, message_id, chat_id, loop
     id = update.message.id
     status = 1
-    search_query = str(update.message.text)
-    mov = client.iter_messages('backup_linker', search=search_query.upper())
+    search_query = str(update.message.text).title()
+    print(search_query)
+    mov = client.iter_messages('backup_linker', search=search_query)
     seen = []
     b= []
+    messi = await update.message.reply_text(f'Searching for "{str(search_query)}" 🔍')
     async for m in mov:
         if isinstance(m.entities, MessageEntityTextUrl):
             await update.message.reply_text(f"{m.message.splitlines()[0]}\n{m.entities[0].url}")
@@ -137,15 +152,21 @@ async def movie(update, context):
                             current_line = lines[line_i][:index]
                             if index < 2 or not current_line.find('Link') == -1:
                                 current_line = lines[line_i - 1]
+                            response = requests.get(
+                                f'https://oggylink.com/api?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={link}')
+                            if response.status_code == 200:
+                                data = response.json()
+                                link = data['shortenedUrl']
                             b.append({'text': f'🎬 {title[:20]} ➠ {current_line} 🎬', 'url': f'https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={link}'})
     but[str(id)] = {'a_b': b, 'c_p': 0}
     app.add_handler(CallbackQueryHandler(button_callback))
-    print(getKeyboard(id))
+    await messi.delete()
     if b:
-        mes = await update.message.reply_text(text=f"🍿 *RESULTS FOR ➠ {search_query.upper()}*", reply_markup=getKeyboard(id), parse_mode='MarkdownV2')
+        mes = await update.message.reply_text(text=f"🍿 *RESULTS FOR ➠ {search_query}*", reply_markup=getKeyboard(id), parse_mode='MarkdownV2')
         message_id.append(mes.message_id)
-        t = threading.Timer(20.0, wrapper, args=[mes, id])
-        t.start()
+        # t = threading.Timer(20.0, wrapper, args=[mes, id])
+        # t.start()
+        task = asyncio.create_task(delete_message(mes, id))
     if not mov:
         await update.message.reply_text(f"No results founds...\n{search_query.strip()} will be added within 5 mins...\nCheck later...")
         async with client.conversation(entity='blinkeringa') as conv:
@@ -182,7 +203,7 @@ async def help_command(update, context):
     await update.message.reply_text("1. Use /start to start the bot\n2. Use /course + course_name to get the course link")
 
 
-async def message_handler(update, context):
+async def movie(update, context):
     count = 1
     search_query = str(update.message.text)
     status = 1
