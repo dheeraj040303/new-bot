@@ -53,7 +53,7 @@ async def link_to_hyperlink(string):
     return string
 
 
-async def button_callback( update, context):
+async def button_callback(update, context):
     global but
     query = update.callback_query
     id = str(query.data).split('_')[1]
@@ -61,12 +61,14 @@ async def button_callback( update, context):
     if query.data == f'previous_{id}':
         print('pressed')
         but[id]['c_p'] -= 1
-        keyboard = getKeyboard(id)
-        await query.edit_message_reply_markup(reply_markup=keyboard)
+        # keyboard = getKeyboard(id)
+        # await query.edit_message_reply_markup(reply_markup=keyboard)
+        await getMessage(update, id, 1)
     elif query.data == f'next_{id}':
         but[id]['c_p'] += 1
-        keyboard = getKeyboard(id)
-        await query.edit_message_reply_markup(reply_markup=keyboard)
+        # keyboard = getKeyboard(id)
+        # await query.edit_message_reply_markup(reply_markup=keyboard)
+        await getMessage(update,id, 1)
     else:
         # Handle button press here
         pass
@@ -77,9 +79,9 @@ def getKeyboard(id):
     page_buttons = but[str(id)]['a_b'][but[str(id)]['c_p'] * 8:(but[str(id)]['c_p'] + 1) * 8]
     keyboard = []
     for b in page_buttons:
-        keyboard.append([InlineKeyboardButton(text=b['text'], url=b['url'])])
-    previous_button = InlineKeyboardButton('🡸 Previous', callback_data=f'previous_{id}')
-    next_button = InlineKeyboardButton('Next 🡺', callback_data=f'next_{id}')
+        keyboard.append([InlineKeyboardButton(text=b['text'], url=b['url'], callback_data=b['text'].ljust(70))])
+    previous_button = InlineKeyboardButton('<< Previous', callback_data=f'previous_{id}')
+    next_button = InlineKeyboardButton('Next >>', callback_data=f'next_{id}')
 
     # Add next and previous buttons to keyboard
     row = []
@@ -92,7 +94,32 @@ def getKeyboard(id):
     return InlineKeyboardMarkup(keyboard)
 
 
+async def getMessage(update, id, rep):
+    page_buttons = but[str(id)]['a_b'][but[str(id)]['c_p'] * 8:(but[str(id)]['c_p'] + 1) * 8]
+    q = page_buttons[0]['text'].split(' ')
+    sq = q[0] + " " + q[1]
+    if not rep:
+        sq = update.message.text
+    reply = f"╒═════════════════════╕\n<code>🍿 {sq} </code>\n═══════════════════════\n"
+    entities = []
+    for button in page_buttons:
+        text = button['text']
+        reply += '🔗 <a href="{0}"><strong>{1}</strong></a>\n*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-\n'.format(
+            button['url'], text)
+        entities.append(MessageEntityTextUrl(url=button['url'], length=len(text), offset=0).to_dict())
 
+    previous_button = InlineKeyboardButton('<< Previous', callback_data=f'previous_{id}')
+    next_button = InlineKeyboardButton('Next >>', callback_data=f'next_{id}')
+    row = []
+    if but[str(id)]['c_p'] > 0:
+        row.append(previous_button)
+    if (but[str(id)]['c_p'] + 1) * 8 < len(but[str(id)]['a_b']):
+        row.append(next_button)
+    if rep:
+        await update.callback_query.edit_message_text(f'{reply}\n░░░░░░░░░░░░░░░░░░░░░░░', parse_mode='HTML', entities=entities, reply_markup=InlineKeyboardMarkup([row]))
+    else:
+        mes = await update.message.reply_text(f'{reply}\n░░░░░░░░░░░░░░░░░░░░░░░', parse_mode='HTML', entities=entities, reply_markup=InlineKeyboardMarkup([row]))
+        return mes
 async def extract_link(string):
     link_regex = re.compile('((https?):(( //) | (\\\\))+([\w\d:  # @%/;$()~_?\+-=\\\.&](#!)?)*)', re.DOTALL)
     links = re.findall(link_regex, string)
@@ -130,7 +157,7 @@ async def message_handler(update, context):
     status = 1
     search_query = str(update.message.text).title()
     print(search_query)
-    mov = client.iter_messages('backup_linker', search=search_query)
+    mov = client.iter_messages('backup_linker', search=search_query, reverse=True)
     seen = []
     b= []
     messi = await update.message.reply_text(f'Searching for "{str(search_query)}" 🔍')
@@ -150,20 +177,32 @@ async def message_handler(update, context):
                         index = lines[line_i].find(link)
                         if not index == -1:
                             current_line = lines[line_i][:index]
-                            if index < 2 or not current_line.find('Link') == -1:
+                            if index < 5 or not current_line.find('Link') == -1:
                                 current_line = lines[line_i - 1]
-                            response = requests.get(
-                                f'https://oggylink.com/api?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={link}')
-                            if response.status_code == 200:
-                                data = response.json()
-                                link = data['shortenedUrl']
-                            b.append({'text': f'🎬 {title[:20]} ➠ {current_line} 🎬', 'url': f'https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={link}'})
+                                print(len(current_line))
+                                if len(current_line) < 3:
+                                    current_line = lines[line_i - 2]
+                            # response = requests.get(
+                            #     f'https://indiurl.in.net/api?api=cd146195ec9183b8e84e30d89b2856f372e2301f&url={link}')
+                            # if response.status_code == 200:
+                            #     data = response.json()
+                            #     link = data['shortenedUrl']
+                            text = f'{title} ➠ {current_line}'
+                            b.append({'text': text , 'url': f'https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={link}'})
     but[str(id)] = {'a_b': b, 'c_p': 0}
     app.add_handler(CallbackQueryHandler(button_callback))
     await messi.delete()
     if b:
-        mes = await update.message.reply_text(text=f"🍿 *RESULTS FOR ➠ {search_query}*", reply_markup=getKeyboard(id), parse_mode='MarkdownV2')
-        message_id.append(mes.message_id)
+        mes = await getMessage(update, id, 0)
+        # await update.message.reply_text(text=f"🍿 *RESULTS FOR ➠ {search_query}*", reply_markup=getKeyboard(id), parse_mode='MarkdownV2')
+        # reply = f"╒═════════════════════════╕\n<code>🍿 {search_query} </code>\n═══════════════════════════\n"
+        # entities = []
+        # for button in b:
+        #     text = button['text']
+        #     reply += '🔗 <a href="{0}"><strong>{1}</strong></a>\n*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-.-*-.-*-.-*\n'.format(button['url'], text )
+        #     entities.append(MessageEntityTextUrl(url=button['url'], length=len(text), offset=0).to_dict())
+        # await update.message.reply_text(f'{reply}\n░░░░░░░░░░░░░░░░░░░░░░░░░░░', parse_mode='HTML', entities=entities)
+        # message_id.append(mes.message_id)
         # t = threading.Timer(20.0, wrapper, args=[mes, id])
         # t.start()
         task = asyncio.create_task(delete_message(mes, id))
