@@ -59,7 +59,6 @@ async def button_callback(update, context):
     id = str(query.data).split('_')[1]
     print(query.data)
     if query.data == f'previous_{id}':
-        print('pressed')
         but[id]['c_p'] -= 1
         # keyboard = getKeyboard(id)
         # await query.edit_message_reply_markup(reply_markup=keyboard)
@@ -103,6 +102,11 @@ async def getMessage(update, id, rep):
     reply = f"╒═════════════════════╕\n<code>🍿 {sq} </code>\n═══════════════════════\n"
     entities = []
     for button in page_buttons:
+        response = requests.get(
+            f'https://oggylink.com/api?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={button["url"]}')
+        if response.status_code == 200:
+            data = response.json()
+            button['url'] = f'https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={data["shortenedUrl"]}'
         text = button['text']
         reply += '🔗 <a href="{0}"><strong>{1}</strong></a>\n*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-*-.-\n'.format(
             button['url'], text)
@@ -133,7 +137,7 @@ async def extract_link(string):
 async def delete_message(message, id):
     # create an event
     global but
-    await asyncio.sleep(60)
+    await asyncio.sleep(150)
     await message.delete()
     del but[str(id)]
     print(but)
@@ -157,7 +161,7 @@ async def message_handler(update, context):
     status = 1
     search_query = str(update.message.text).title()
     print(search_query)
-    mov = client.iter_messages('backup_linker', search=search_query, reverse=True)
+    mov = client.iter_messages('backup_linker', search=search_query)
     seen = []
     b= []
     messi = await update.message.reply_text(f'Searching for "{str(search_query)}" 🔍')
@@ -179,11 +183,10 @@ async def message_handler(update, context):
                             current_line = lines[line_i][:index]
                             if index < 5 or not current_line.find('Link') == -1:
                                 current_line = lines[line_i - 1]
-                                print(len(current_line))
                                 if len(current_line) < 3:
                                     current_line = lines[line_i - 2]
                             # response = requests.get(
-                            #     f'https://indiurl.in.net/api?api=cd146195ec9183b8e84e30d89b2856f372e2301f&url={link}')
+                            #     f'https://oggylink.com/api?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={link}')
                             # if response.status_code == 200:
                             #     data = response.json()
                             #     link = data['shortenedUrl']
