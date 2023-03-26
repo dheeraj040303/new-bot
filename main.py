@@ -8,8 +8,6 @@ import threading
 import asyncio
 import re
 import time
-
-import emoji
 import requests
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot, MessageEntity ,InputMediaPhoto
 from telegram.ext import *
