@@ -26,7 +26,7 @@ api_id = 27575247
 api_hash = '44f4ce1ee458039f7500b0bce10fbc63'
 user_name = 'two_backup'
 session_string = '1BVtsOKEBuzhwIpU_AuhlauBM9-30gEf7-jovu5m8AdAkBhWhof7wshA1ES4kWqIHzVt4M4ecii8Numw6teG72pQI5J7aV2qnA7vQXSwrZUdMa-bIBHNIQySMoqEZTCh25HRQwCCDQjcUf40RcmcAllmXYvn71xcWfPHU193zF7P-IDGykcZZXif84AqOG0UaJLVdyPoDCtT3TxpkbUFBY7EcstvYuH1PJGfD47yEczxDTR7LP2fyUy2_27iZ_7VAlU_KcmXpILdn8U8eZdtLp1DH1SAvIvV5iKg086vLeUe8XBmvEECzWew7uN2a2RfjJPss2uyTtOF3x37MUH4Ldv0HgdhKWO8='
-client = TelegramClient("toa", api_id, api_hash)
+client = TelegramClient("mdisk_bot", api_id, api_hash)
 client.start()
 entity = client.get_entity("backup_linker")
 loop = asyncio.new_event_loop()
@@ -100,7 +100,7 @@ def getKeyboard(id):
     return InlineKeyboardMarkup(keyboard)
 
 
-async def getMessage(update, id, rep):
+async def getMessagde(update, id, rep):
     current_page = but[str(id)]['c_p'] + 1
     total_pages = math.ceil(len(but[str(id)]['a_b'])/8)
     width = len(str(total_pages)) + len(str(current_page))
@@ -145,6 +145,56 @@ async def getMessage(update, id, rep):
         await update.callback_query.edit_message_text(f'{reply}\n{page_details}', parse_mode='HTML', entities=entities, reply_markup=InlineKeyboardMarkup([row, backup, money]))
     else:
         mes = await update.message.reply_text(f'{reply}\n{page_details}', parse_mode='HTML', entities=entities, reply_markup=InlineKeyboardMarkup([row, backup, money]))
+        return mes
+
+async def getMessage(update, id, rep):
+    prompts = ["🎬 Voila! Your movie results are here.", "🍿 Sit tight, your movie results are about to roll in.",
+               "🎉 Your movie results are ready! Let's celebrate with some 🍾",
+               "📺 Lights, camera, action! Your movie results are on screen.",
+               "🎥 Get ready for the big reveal - your movie results are in."]
+    current_page = but[str(id)]['c_p'] + 1
+    total_pages = math.ceil(len(but[str(id)]['a_b'])/8)
+    width = len(str(total_pages)) + len(str(current_page))
+    page_buttons = but[str(id)]['a_b'][but[str(id)]['c_p'] * 8:(but[str(id)]['c_p'] + 1) * 8]
+    q = page_buttons[0]['text']
+    sq = f'{q[:10]}...'.upper()
+    if not rep:
+        sq = update.message.text.upper()
+    entities = []
+    for button in page_buttons:
+        # response = requests.get(
+        #     f'https://oggylink.com/api?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={button["url"]}')
+        # if response.status_code == 200:
+        #     data = response.json()
+        #     button['url'] = f'https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={data["shortenedUrl"]}'
+        text = f'🔗 {button["text"]}'
+        #design = f'───※ ·❆· ※───'.center(49)
+        entities.append([InlineKeyboardButton(text, url=button['url'])])
+    previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'previous_{id}')
+    next_button = InlineKeyboardButton('Next ►►', callback_data=f'next_{id}')
+    backup = [InlineKeyboardButton('📢 Join our channel and stay informed! 📲', url='https://t.me/movie_paradize')]
+    money = [InlineKeyboardButton('💰 Click here to make some cash! 💰', url='https://t.me/MovieMdiskDownload/3866')]
+    if width == 2:
+        width = 48
+    elif width == 3:
+        width = 47
+    else:
+        width = 45
+    page_nos = f'PAGE {current_page}/{total_pages}'
+    page_details = f'╭───────༺♡༻───────╮\n{page_nos}\n╰───────༺♡༻───────╯'
+    row = []
+    if but[str(id)]['c_p'] > 0:
+        row.append(previous_button)
+        row.append(InlineKeyboardButton(text=page_nos, callback_data='page_no'))
+    if (but[str(id)]['c_p'] + 1) * 8 < len(but[str(id)]['a_b']):
+        if(not len(row)):
+            row.append(InlineKeyboardButton(text=page_nos, callback_data='page_no'))
+        row.append(next_button)
+    entities.extend([row, backup, money])
+    if rep:
+        await update.callback_query.edit_message_text(text=random.choice(prompts),  reply_markup=InlineKeyboardMarkup(entities))
+    else:
+        mes = await update.message.reply_text( text=random.choice(prompts), reply_markup=InlineKeyboardMarkup(entities))
         return mes
 
 async def extract_link(string):
@@ -196,7 +246,7 @@ async def message_handler(update, context):
     mov = client.iter_messages('backup_linker', search=search_query)
     seen = []
     b= []
-    messi = await update.message.reply_text(random.choice(responses))
+    messi = await update.message.reply_text(random.choice(responses), reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text='join this group for movies', url='https://t.me/MovieMdiskDownload')]]))
     async for m in mov:
         if isinstance(m.entities, MessageEntityTextUrl):
             await update.message.reply_text(f"{m.message.splitlines()[0]}\n{m.entities[0].url}")
@@ -222,7 +272,8 @@ async def message_handler(update, context):
                             # if response.status_code == 200:
                             #     data = response.json()
                             #     link = data['shortenedUrl']
-                            text = f'{title} ➠ {current_line}'
+                            trun = 30 - len(current_line)
+                            text = f'{title[:trun]}...{current_line}'
                             b.append({'text': text, 'url': f'https://oggylink.com/st?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={link}'})
     but[str(id)] = {'a_b': b, 'c_p': 0}
     app.add_handler(CallbackQueryHandler(button_callback))
@@ -243,6 +294,7 @@ async def message_handler(update, context):
         task = asyncio.create_task(delete_message(mes, id, 1))
         task2 = asyncio.create_task(delete_message(messi, id, 0))
     else:
+        await update.message.reply_text(text='/help')
         await messi.delete()
     if not mov:
         await update.message.reply_text(f"No results founds...\n{search_query.strip()} will be added within 5 mins...\nCheck later...")
@@ -279,7 +331,7 @@ async def course(update, context):
 async def help_command(update, context):
     backup = [InlineKeyboardButton('📢 Join our channel and stay informed! 📲', url='https://t.me/movie_paradize')]
     money = [InlineKeyboardButton('💰 Click here to make some cash! 💰', url='https://t.me/MovieMdiskDownload/3866')]
-    await update.message.reply_text("🤖🎥 Movie Link Bot Rules 🎥🤖\nTo use Movie Link Bot, please follow these rules:\nType only the name of the movie you want to watch.\nDo not include the movie name in any language other than English.\nInclude the year of the movie for better results.\nIf you don't find the movie you're looking for, please make a request.\nThat's all there is to it! If you have any questions or need further assistance, don't hesitate to reach out to me. Happy movie watching! 🍿👀", reply_markup=InlineKeyboardMarkup([backup, money]))
+    await update.message.reply_text("🤖🎥 Movie Link Bot Rules 🎥🤖\n- To use Movie Link Bot, please follow these rules:\n- Type only the name of the movie you want to watch.\n- Do not include the movie name in any language other than English.\n- Include the year of the movie for better results.\n- If you don't find the movie you're looking for, please make a request.\nThat's all there is to it! If you have any questions or need further assistance, don't hesitate to reach out to me. Happy movie watching! 🍿👀",parse_mode='Markdown', reply_markup=InlineKeyboardMarkup([backup, money]))
 
 
 async def movie(update, context):
@@ -347,8 +399,6 @@ async def movie(update, context):
 
 async def error(update, context):
     print(f"Update {update} cause error {context.error}")
-
-
 
 def main():
     app.add_handler(CommandHandler("start", start))
