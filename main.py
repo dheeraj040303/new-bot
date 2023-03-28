@@ -15,29 +15,32 @@ from telethon.tl.types import MessageEntityTextUrl
 import response as R
 from telethon import TelegramClient, sync
 from urlextract import URLExtract
-
 extractor = URLExtract()
+from mdisky import Mdisk
 # Define the token of your bot
 TOKEN = '5673905050:AAFOUxkIDikmrP4kdlNcTn2hMr9341aoEFA'
-
+mdisk_api_key = 'GrG0naDSbxAqEjp0Owz0'
 api_id = 27575247
 api_hash = '44f4ce1ee458039f7500b0bce10fbc63'
 user_name = 'two_backup'
 session_string = '1BVtsOKEBuzhwIpU_AuhlauBM9-30gEf7-jovu5m8AdAkBhWhof7wshA1ES4kWqIHzVt4M4ecii8Numw6teG72pQI5J7aV2qnA7vQXSwrZUdMa-bIBHNIQySMoqEZTCh25HRQwCCDQjcUf40RcmcAllmXYvn71xcWfPHU193zF7P-IDGykcZZXif84AqOG0UaJLVdyPoDCtT3TxpkbUFBY7EcstvYuH1PJGfD47yEczxDTR7LP2fyUy2_27iZ_7VAlU_KcmXpILdn8U8eZdtLp1DH1SAvIvV5iKg086vLeUe8XBmvEECzWew7uN2a2RfjJPss2uyTtOF3x37MUH4Ldv0HgdhKWO8='
-client = TelegramClient("mdisk_bot", api_id, api_hash)
+client = TelegramClient("mdisk_", api_id, api_hash)
 client.start()
 entity = client.get_entity("backup_linker")
 loop = asyncio.new_event_loop()
+mdisk = Mdisk(mdisk_api_key)
 app = ApplicationBuilder().token(TOKEN).build()
 messagee = None
 but = {}
 message_id = []
 chat_id = None
+
+
 async def start(update, context):
     backup = [InlineKeyboardButton('📢 Join our channel and stay informed! 📲', url='https://t.me/movie_paradize')]
     money = [InlineKeyboardButton('💰 Click here to make some cash! 💰', url='https://t.me/MovieMdiskDownload/3866')]
     await update.message.reply_text("🎥🤖 Hey there! I'm your personal movie link bot 🤖🎥\nJust tell me the name of the movie you want to watch, and I'll provide you with the links to watch it online! 🍿👀\nWhether you're in the mood for action 💥, romance 💕, comedy 😂, or horror 😱, I've got you covered! So sit back, relax, and let me take care of finding the perfect movie for you. 🎞️👌", reply_markup=InlineKeyboardMarkup([
-        [InlineKeyboardButton("LinkerIn", url='https://linkerin.ga')],
+        [InlineKeyboardButton("LinkerIn: Dheeraj", url='https://linkerin.ga')],
         backup,
         money
     ]))
@@ -165,7 +168,8 @@ async def getMessage(update, id, rep):
         # if response.status_code == 200:
         #     data = response.json()
         #     button['url'] = f'https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={data["shortenedUrl"]}'
-        text = f'🔗 {button["text"]}'
+        text = f'🔗🔗{button["text"]}🔗🔗'
+        text.replace("\n", "%0A")
         #design = f'───※ ·❆· ※───'.center(49)
         entities.append([InlineKeyboardButton(text, url=button['url'])])
     previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'previous_{id}')
@@ -190,9 +194,9 @@ async def getMessage(update, id, rep):
         row.append(next_button)
     entities.extend([row, backup, money])
     if rep:
-        await update.callback_query.edit_message_text(text=random.choice(prompts),  reply_markup=InlineKeyboardMarkup(entities))
+        await update.callback_query.edit_message_text(text=random.choice(prompts),  reply_markup=InlineKeyboardMarkup(entities), parse_mode='HTML')
     else:
-        mes = await update.message.reply_text( text=random.choice(prompts), reply_markup=InlineKeyboardMarkup(entities))
+        mes = await update.message.reply_text( text=random.choice(prompts), reply_markup=InlineKeyboardMarkup(entities), parse_mode='HTML')
         return mes
 
 async def extract_link(string):
@@ -246,10 +250,11 @@ async def message_handler(update, context):
     b= []
     messi = await update.message.reply_text(random.choice(responses), reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text='join this group for movies', url='https://t.me/MovieMdiskDownload')]]))
     async for m in mov:
+        content = str(m.message)
         if isinstance(m.entities, MessageEntityTextUrl):
             await update.message.reply_text(f"{m.message.splitlines()[0]}\n{m.entities[0].url}")
         else:
-            links = await extract_link(str(m.message))
+            links = await extract_link(content)
             lines = m.message.splitlines()
             title = lines[0]
             for link in links:
@@ -271,7 +276,7 @@ async def message_handler(update, context):
                             #     data = response.json()
                             #     link = data['shortenedUrl']
                             trun = 30 - len(current_line)
-                            text = f'{title[:trun]}...{current_line}'
+                            text = f'{title[:trun]}-{current_line}'
                             b.append({'text': text, 'url': f'https://oggylink.com/st?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={link}'})
     but[str(id)] = {'a_b': b, 'c_p': 0}
     app.add_handler(CallbackQueryHandler(button_callback))
@@ -292,7 +297,7 @@ async def message_handler(update, context):
         task = asyncio.create_task(delete_message(mes, id, 1))
         task2 = asyncio.create_task(delete_message(messi, id, 0))
     else:
-        await update.message.reply_text(text='/help')
+        await update.message.reply_text(text="🤔🎥 Can't find the movie. What's the name?" , reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text='🖱️🔗 Click here to Google!', url=f'https://www.google.com/search?q={search_query}')]] ))
         await messi.delete()
     if not mov:
         await update.message.reply_text(f"No results founds...\n{search_query.strip()} will be added within 5 mins...\nCheck later...")
