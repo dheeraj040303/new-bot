@@ -168,7 +168,7 @@ async def getMessage(update, id, rep):
         # if response.status_code == 200:
         #     data = response.json()
         #     button['url'] = f'https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={data["shortenedUrl"]}'
-        text = f'🔗🔗{button["text"]}🔗🔗'
+        text = f'🔗 {button["text"]}'
         text.replace("\n", "%0A")
         #design = f'───※ ·❆· ※───'.center(49)
         entities.append([InlineKeyboardButton(text, url=button['url'])])
@@ -200,13 +200,10 @@ async def getMessage(update, id, rep):
         return mes
 
 async def extract_link(string):
-    link_regex = re.compile('((https?):(( //) | (\\\\))+([\w\d:  # @%/;$()~_?\+-=\\\.&](#!)?)*)', re.DOTALL)
+    link_regex = re.compile(r'https?://\S+')
     links = re.findall(link_regex, string)
-    urls = extractor.find_urls(string)
-    if len(urls):
-        return urls
-    else:
-        return links
+    return links
+
 
 
 async def delete_message(message, id,actual_message):
@@ -250,11 +247,13 @@ async def message_handler(update, context):
     b= []
     messi = await update.message.reply_text(random.choice(responses), reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text='join this group for movies', url='https://t.me/MovieMdiskDownload')]]))
     async for m in mov:
+        print(m)
         content = str(m.message)
         if isinstance(m.entities, MessageEntityTextUrl):
             await update.message.reply_text(f"{m.message.splitlines()[0]}\n{m.entities[0].url}")
         else:
             links = await extract_link(content)
+            print(links)
             lines = m.message.splitlines()
             title = lines[0]
             for link in links:
