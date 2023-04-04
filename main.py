@@ -13,7 +13,7 @@ import urllib.request
 import time
 import requests
 import telegram
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, InputFile
 from telegram.ext import *
 from telethon.tl.types import MessageEntityTextUrl
 from io import BytesIO
@@ -31,7 +31,7 @@ api_id = 27575247
 api_hash = '44f4ce1ee458039f7500b0bce10fbc63'
 user_name = 'two_backup'
 session_string = '1BVtsOKEBuzhwIpU_AuhlauBM9-30gEf7-jovu5m8AdAkBhWhof7wshA1ES4kWqIHzVt4M4ecii8Numw6teG72pQI5J7aV2qnA7vQXSwrZUdMa-bIBHNIQySMoqEZTCh25HRQwCCDQjcUf40RcmcAllmXYvn71xcWfPHU193zF7P-IDGykcZZXif84AqOG0UaJLVdyPoDCtT3TxpkbUFBY7EcstvYuH1PJGfD47yEczxDTR7LP2fyUy2_27iZ_7VAlU_KcmXpILdn8U8eZdtLp1DH1SAvIvV5iKg086vLeUe8XBmvEECzWew7uN2a2RfjJPss2uyTtOF3x37MUH4Ldv0HgdhKWO8='
-client = TelegramClient("mdisk_das", api_id, api_hash)
+client = TelegramClient("mdisk_as", api_id, api_hash)
 bot = telegram.Bot(token=TOKEN)
 client.start()
 entity = client.get_entity("backup_linker")
@@ -49,6 +49,8 @@ def getHTMLdocument(url):
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36'})
     # response will be provided in JSON format
     return response.text
+
+
 
 
 async def start(update, context):
@@ -83,7 +85,6 @@ async def button_callback(update, context):
     qu = str(query.data).split('|')
     id = qu[1]
     q = qu[0]
-    print(q)
     if q == f'p':
         but[id]['c_p'] -= 1
         # keyboard = getKeyboard(id)
@@ -94,29 +95,25 @@ async def button_callback(update, context):
         # keyboard = getKeyboard(id)
         # await query.edit_message_reply_markup(reply_markup=keyboard)
         await getMessage(update,id, 1)
-    elif not q.find('/title/') == -1:
+    else:
         m = but[id]['reply']
-        print(qu[2])
-        b = await get_results(qu[2])
+        htmL_doc = getHTMLdocument(f'https://www.imdb.com/find/?s=tt&q={q}&ref_=nv_sr_sm')
+        soap = BeautifulSoup(htmL_doc, 'html.parser')
+        t_id = soap.find('li', attrs={'class': 'ipc-metadata-list-summary-item'}).a['href']
+        b = await get_results(q)
         if b:
+            pho = requests.get(
+                'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9RFoSyLQORtrxvqbYq5MY_HfWsCYNooRrzxHhuU9vBDU2sIW_9D1GjfapiBM8S_Ux52k&usqp=CAU')
+            photo = BytesIO(pho.content)
             but[id]['a_b'] = b
-
-            k = await getMessage(update, id, 1)
-            detail = get_movie_info(q)
-            title = detail["title"].split("-")[0]
-            genre = array_prettify(detail["genre"])
-            rating = detail["ratings"]
-
-            # Escape special characters in title to prevent parse_mode errors
-            title = html.escape(title)
-
-            text = f'🎥 <b>Title:</b> {title}\n🎭 <b>Genre:</b> {genre}\n⭐ <b>Rating:</b> {rating}/10'
-            me = await k.edit_text(text=text, reply_markup=k.reply_markup, parse_mode='HTML')
+            await m.delete()
+            me = await bot.send_photo(chat_id=qu[2], caption='🎥🔍 Fetching movie details...',
+                                      photo=photo, parse_mode='HTML')
+            but[id]['reply'] = me
+            me = await getMessage(update, id, 1)
+            me = await send_photo(me, t_id, q)
             but[str(id)]['reply'] = me
             task = asyncio.create_task(delete_message(id, me))
-    else:
-        # Handle button press here
-        pass
 
 
 def getKeyboard(id):
@@ -186,12 +183,15 @@ async def getMessagde(update, id, rep):
         mes = await update.message.reply_text(f'{reply}\n{page_details}', parse_mode='HTML', entities=entities, reply_markup=InlineKeyboardMarkup([row, backup, money]))
         return mes
 
+
 def array_prettify(a):
     print(a)
     b = ""
     for item in a:
-        b = b + f"{item}, "
+        b = b + f"{item} "
     return b
+
+
 async def getMessage(update, id, rep):
     m = but[str(id)]['reply']
     print(update)
@@ -240,13 +240,14 @@ async def getMessage(update, id, rep):
         row.append(next_button)
     entities.extend([row, backup, money])
     if rep:
-        mes = await m.edit_text(text=m.text, reply_markup=InlineKeyboardMarkup(entities), parse_mode='HTML')
+        mes = await m.edit_reply_markup( reply_markup=InlineKeyboardMarkup(entities))
         but[str(id)]['reply'] = mes
         return mes
     else:
-        mes = await m.edit_text(text=m.text, reply_markup=InlineKeyboardMarkup(entities), parse_mode='HTML')
+        mes = await m.edit_reply_markup( reply_markup=InlineKeyboardMarkup(entities))
         but[str(id)]['reply'] = mes
         return mes
+
 
 async def extract_link(string):
     link_regex = re.compile(r'https?://\S+')
@@ -254,13 +255,12 @@ async def extract_link(string):
     return links
 
 
-
 async def delete_message(id, me):
     # create an event
     global but
     await asyncio.sleep(180)
     # await message.delete()
-    await me.edit_text(text=me.text + "\n🔍🕵️‍♀️ SEARCH AGAIN! 🤔👀")
+    await me.edit_caption(caption=me.caption + "\n\n🔍🕵️‍♀️ SEARCH AGAIN! 🤔👀\n")
     del but[str(id)]
     # wait for the event to be set
 
@@ -269,13 +269,17 @@ def wrapper(message, id):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(delete_message(message, id))
+
+
 def stop_loop():
     loop.stop()
+
 
 async def send_initial(update, context):
     mes = await update.message.reply_text(f'Searching for "{str(update.message.text)}" 🔍')
     await asyncio.sleep(1)
     await mes.delete()
+
 
 def get_movie_info(title_id):
     info_doc = getHTMLdocument(f'https://www.imdb.com/{title_id}')
@@ -287,15 +291,24 @@ def get_movie_info(title_id):
     detail = {
         'title': soap_d.title.string,
         'ratings': soap_d.find('span', attrs={'class': 'sc-e457ee34-1 squoh'}).string,
-        'genre': genre
+        'genre': genre,
+        'release':soap_d.find('a', attrs={'class': 'ipc-link ipc-link--baseAlt ipc-link--inherit-color'}).string,
+        'desc':soap_d.find('span', attrs={'class': 'sc-35061649-1 NHBDz'}).string
     }
-    return detail
+    title = detail["title"].split("-")[0]
+    genre = array_prettify(detail["genre"])
+    rating = detail["ratings"]
+
+    # Escape special characters in title to prevent parse_mode errors
+    title = html.escape(title)
+    text = f'\n🎥 <b>Title:</b> {title}\n\n📅 <b>Release date:</b> {detail["release"]}\n\n🎭 <b>Genre:</b> {genre}\n\n⭐ <b>Rating:</b> {rating}/10\n\n📝 <b>Description</b>: {detail["desc"]}\n'
+    return text
+
 
 async def get_results(search_query):
     mov = client.iter_messages('backup_linker', search=search_query)
     seen = []
     b = []
-
     async for m in mov:
 
         content = str(m.message)
@@ -303,8 +316,6 @@ async def get_results(search_query):
             continue
         else:
             links = await extract_link(content)
-            print(links)
-
             lines = m.message.splitlines()
             title = lines[0]
             for link in links:
@@ -331,6 +342,51 @@ async def get_results(search_query):
                                       'url': f'https://oggylink.com/st?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={link}'})
     return b
 
+
+def poster(search):
+    main_doc = getHTMLdocument(f'https://www.cinematerial.com/search?q={search}')
+    sop = BeautifulSoup(main_doc, 'html.parser')
+    link = sop.find('a', attrs={'href': re.compile('^/tv')})['href']
+    pos_doc = getHTMLdocument(f'https://www.cinematerial.com/{link}')
+    sopp = BeautifulSoup(pos_doc, 'html.parser')
+    img = sopp.find('img', attrs={'class': 'lazy'})
+    print(img)
+    pho = requests.get(img)
+    photo = BytesIO(pho.content)
+    return photo
+
+async def send_photo(mes, title_id, search_query):
+    text = get_movie_info(title_id)
+    g_doc = getHTMLdocument(f'https://hdmoviehub.click/?s={search_query}')
+    sop = BeautifulSoup(g_doc, 'html.parser')
+    img = sop.find('img', attrs={'class': 'wp-post-image'})
+    # print(img)
+    # image_bytes = base64.b64decode(img.split(',')[1])
+    # t_doc = getHTMLdocument(f'https://search.brave.com/images?q={search_query}&source=web')
+    # toap = BeautifulSoup(t_doc, 'html.parser')
+    # img = toap.find('img', attrs={'class': 'image svelte-qd248k'})
+    photo = None
+    if img:
+        print('asdf')
+        img = img['src']
+        pho = requests.get(img)
+        photo = BytesIO(pho.content)
+    # photo = BytesIO(image_bytes)
+            # photo.close()
+    else :
+        t_doc = getHTMLdocument(f'https://screenrant.com/search/?q={search_query}')
+        toap = BeautifulSoup(t_doc, 'html.parser')
+        imgd = toap.find('source')
+        print(imgd)
+        if imgd:
+            img = imgd['srcset']
+            pho = requests.get(img)
+            photo = BytesIO(pho.content)
+    # photo = poster(search_query)
+    mes = await mes.edit_media(media=InputMediaPhoto(photo), reply_markup=mes.reply_markup)
+    mess = await mes.edit_caption(caption=text, parse_mode='HTML', reply_markup=mes.reply_markup)
+    return mess
+
 async def message_handler(update, context):
     global but, message_id, chat_id, loop
     id = update.message.id
@@ -354,8 +410,11 @@ async def message_handler(update, context):
     me = None
     if b:
         await messi.delete()
-        me = await update.message.reply_text(text='🍿🎥 Your Result: 🌟🌟🌟🌟🌟', parse_mode='HTML')
+        pho = requests.get('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9RFoSyLQORtrxvqbYq5MY_HfWsCYNooRrzxHhuU9vBDU2sIW_9D1GjfapiBM8S_Ux52k&usqp=CAU')
+        photo = BytesIO(pho.content)
+        me = await bot.send_photo(chat_id=update.message.chat.id, caption='🎥🔍 Fetching movie details...',photo=photo, parse_mode='HTML')
         but[str(id)]['reply'] = me
+
     app.add_handler(CallbackQueryHandler(button_callback))
     markup = []
     htmL_doc = getHTMLdocument(f'https://www.imdb.com/find/?s=tt&q={search_query}&ref_=nv_sr_sm')
@@ -364,31 +423,11 @@ async def message_handler(update, context):
     results = soap.find_all('li', attrs={'class': 'ipc-metadata-list-summary-item'}, limit=8)
     title_id = results[0].a['href']
     for item in results:
-        markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f'{item.a["href"]}|{id}|{item.a.string}')])
-
+        markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f'{item.a.string}|{id}|{update.message.chat.id}')])
     if b:
         mes = await getMessage(update, id, 0)
-        detail = get_movie_info(title_id)
-        title = detail["title"].split("-")[0]
-        genre = array_prettify(detail["genre"])
-        rating = detail["ratings"]
-
-        # Escape special characters in title to prevent parse_mode errors
-        title = html.escape(title)
-        m = client.iter_messages('backup_linker', search=search_query, limit=1)
-        # g_doc = getHTMLdocument(f'https://www.google.com/search?q={search_query}&&tbm=isch')
-        # sop = BeautifulSoup(g_doc, 'html.parser')
-        # img = sop.find('img', attrs={'class': 'rg_i Q4LuWd'})['src']
-        # print(img)
-        # image_bytes = base64.b64decode(img.split(',')[1])
-        # #pho = requests.get(img)
-        # #photo = BytesIO(pho.content)
-        # photo = BytesIO(image_bytes)
-        # await bot.send_photo(chat_id=update.message.chat.id , photo=photo)
-        #         # photo.close()
-        text = f'🎥 <b>Title:</b> {title}\n🎭 <b>Genre:</b> {genre}\n⭐ <b>Rating:</b> {rating}/10'
-        me = await mes.edit_text(text = text, parse_mode="HTML", reply_markup=mes.reply_markup)
-        but[str(id)]['reply'] = me
+        mess = await send_photo(mes, title_id, search_query)
+        but[str(id)]['reply'] = mess
         # await update.message.reply_text(text=f"🍿 *RESULTS FOR ➠ {search_query}*", reply_markup=getKeyboard(id), parse_mode='MarkdownV2')
         # reply = f"╒═════════════════════════╕\n<code>🍿 {search_query} </code>\n═══════════════════════════\n"
         # entities = []
@@ -400,7 +439,7 @@ async def message_handler(update, context):
         # message_id.append(mes.message_id)
         # t = threading.Timer(20.0, wrapper, args=[mes, id])
         # t.start()
-        task = asyncio.create_task(delete_message(id, me))
+        task = asyncio.create_task(delete_message(id, mess))
     else:
         await messi.delete()
         meu = await update.message.reply_text(text="🤔🎥 Can't find the movie. What's the name?" , reply_markup=InlineKeyboardMarkup(markup))
