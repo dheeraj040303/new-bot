@@ -81,22 +81,34 @@ async def link_to_hyperlink(string):
 
 async def button_callback(update, context):
     global but
+    print(update)
+    print(but)
     query = update.callback_query
     qu = str(query.data).split('|')
-    id = qu[1]
+    ide = qu[1]
     q = qu[0]
-    if q == f'p':
-        but[id]['c_p'] -= 1
-        # keyboard = getKeyboard(id)
+    idm = update.callback_query.message.message_id - 2
+    if len(qu) >2 and qu[2] == "1":
+        idm -= 1
+    print(idm)
+    user_id = update.callback_query.from_user.id
+    print(f'{user_id}  {ide}')
+    if not str(user_id) == str(ide):
+        await query.answer("Don't touch others property search on your own", show_alert=True)
+    elif q == f'p':
+        but[str(idm)]['c_p'] -= 1
+        # keyboard = getKeyboard(id)1
         # await query.edit_message_reply_markup(reply_markup=keyboard)
-        await getMessage(update, id, 1)
+        await getMessage(update, ide,  idm, 0)
     elif q == f'n':
-        but[id]['c_p'] += 1
+        but[str(idm)]['c_p'] += 1
+        print('asdfjasldf')
         # keyboard = getKeyboard(id)
         # await query.edit_message_reply_markup(reply_markup=keyboard)
-        await getMessage(update,id, 1)
+        await getMessage(update,ide, idm, 0)
     else:
-        m = but[id]['reply']
+        chat_id = update.callback_query.message.chat.id
+        m = but[str(idm )]['reply']
         htmL_doc = getHTMLdocument(f'https://www.imdb.com/find/?s=tt&q={q}&ref_=nv_sr_sm')
         soap = BeautifulSoup(htmL_doc, 'html.parser')
         t_id = soap.find('li', attrs={'class': 'ipc-metadata-list-summary-item'}).a['href']
@@ -105,15 +117,15 @@ async def button_callback(update, context):
             pho = requests.get(
                 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9RFoSyLQORtrxvqbYq5MY_HfWsCYNooRrzxHhuU9vBDU2sIW_9D1GjfapiBM8S_Ux52k&usqp=CAU')
             photo = BytesIO(pho.content)
-            but[id]['a_b'] = b
+            but[str(idm )]['a_b'] = b
             await m.delete()
-            me = await bot.send_photo(chat_id=qu[2], caption='🎥🔍 Fetching movie details...',
+            me = await bot.send_photo(chat_id=chat_id, caption='🎥🔍 Fetching movie details...',
                                       photo=photo, parse_mode='HTML')
-            but[id]['reply'] = me
-            me = await getMessage(update, id, 1)
+            but[str(idm )]['reply'] = me
+            me = await getMessage(update, ide, idm , 1)
             me = await send_photo(me, t_id, q)
-            but[str(id)]['reply'] = me
-            task = asyncio.create_task(delete_message(id, me))
+            but[str(idm  )]['reply'] = me
+            task = asyncio.create_task(delete_message(idm , me))
 
 
 def getKeyboard(id):
@@ -135,7 +147,7 @@ def getKeyboard(id):
     return InlineKeyboardMarkup(keyboard)
 
 
-async def getMessagde(update, id, rep):
+async def getMessagde(update, ide, rep):
     current_page = but[str(id)]['c_p'] + 1
     total_pages = math.ceil(len(but[str(id)]['a_b'])/8)
     width = len(str(total_pages)) + len(str(current_page))
@@ -159,8 +171,8 @@ async def getMessagde(update, id, rep):
             button['url'], f'{text}')
         reply += cl
         entities.append(MessageEntityTextUrl(url=button['url'], length=len(text), offset=0).to_dict())
-    previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'previous|{id}')
-    next_button = InlineKeyboardButton('Next ►►', callback_data=f'next|{id}')
+    previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'previous|{ide}')
+    next_button = InlineKeyboardButton('Next ►►', callback_data=f'next|{ide}')
     backup = [InlineKeyboardButton('📢 Join our channel and stay informed! 📲', url='https://t.me/movie_paradize')]
     money = [InlineKeyboardButton('💰 Click here to make some cash! 💰', url='https://t.me/MovieMdiskDownload/3866')]
     if width == 2:
@@ -192,7 +204,13 @@ def array_prettify(a):
     return b
 
 
-async def getMessage(update, id, rep):
+async def getMessage(update,ide,  rep, sug):
+    print(update)
+    id = rep
+    # if update.message:
+    #     id = update.message.message_id
+    # else:
+    #     id = update.callback_query.message.message_id - 2
     m = but[str(id)]['reply']
     print(update)
     prompts = ["🎬 Voila! Your movie results are here.", "🍿 Sit tight, your movie results are about to roll in.",
@@ -218,8 +236,8 @@ async def getMessage(update, id, rep):
         text.replace("\n", "%0A")
         #design = f'───※ ·❆· ※───'.center(49)
         entities.append([InlineKeyboardButton(text, url=button['url'])])
-    previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'p|{id}')
-    next_button = InlineKeyboardButton('Next ►►', callback_data=f'n|{id}')
+    previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'p|{ide}|{sug }')
+    next_button = InlineKeyboardButton('Next ►►', callback_data=f'n|{ide}|{sug}')
     backup = [InlineKeyboardButton('📢 Join our channel and stay informed! 📲', url='https://t.me/movie_paradize')]
     money = [InlineKeyboardButton('💰 Click here to make some cash! 💰', url='https://t.me/MovieMdiskDownload/3866')]
     if width == 2:
@@ -233,20 +251,15 @@ async def getMessage(update, id, rep):
     row = []
     if but[str(id)]['c_p'] > 0:
         row.append(previous_button)
-        row.append(InlineKeyboardButton(text=page_nos, callback_data='page_no'))
+        row.append(InlineKeyboardButton(text=page_nos, callback_data=f'page_no|{ide}'))
     if (but[str(id)]['c_p'] + 1) * 8 < len(but[str(id)]['a_b']):
         if(not len(row)):
-            row.append(InlineKeyboardButton(text=page_nos, callback_data='page_no'))
+            row.append(InlineKeyboardButton(text=page_nos, callback_data=f'page_no|{ide}'))
         row.append(next_button)
     entities.extend([row, backup, money])
-    if rep:
-        mes = await m.edit_reply_markup( reply_markup=InlineKeyboardMarkup(entities))
-        but[str(id)]['reply'] = mes
-        return mes
-    else:
-        mes = await m.edit_reply_markup( reply_markup=InlineKeyboardMarkup(entities))
-        but[str(id)]['reply'] = mes
-        return mes
+    mes = await m.edit_reply_markup( reply_markup=InlineKeyboardMarkup(entities))
+    but[str(id)]['reply'] = mes
+    return mes
 
 
 async def extract_link(string):
@@ -356,6 +369,7 @@ def poster(search):
     return photo
 
 async def send_photo(mes, title_id, search_query):
+    print(title_id)
     text = get_movie_info(title_id)
     g_doc = getHTMLdocument(f'https://hdmoviehub.click/?s={search_query}')
     sop = BeautifulSoup(g_doc, 'html.parser')
@@ -367,19 +381,19 @@ async def send_photo(mes, title_id, search_query):
     # img = toap.find('img', attrs={'class': 'image svelte-qd248k'})
     photo = None
     if img:
-        print('asdf')
         img = img['src']
         pho = requests.get(img)
         photo = BytesIO(pho.content)
     # photo = BytesIO(image_bytes)
             # photo.close()
     else :
-        t_doc = getHTMLdocument(f'https://screenrant.com/search/?q={search_query}')
+        t_doc = getHTMLdocument(f'https://www.movieposterdb.com/search?q={title_id}')
         toap = BeautifulSoup(t_doc, 'html.parser')
-        imgd = toap.find('source')
+        imgd = toap.find('img', attrs={'class': 'poster_img'})
         print(imgd)
+        print(imgd['data-src'])
         if imgd:
-            img = imgd['srcset']
+            img = imgd['data-src']
             pho = requests.get(img)
             photo = BytesIO(pho.content)
     # photo = poster(search_query)
@@ -389,9 +403,12 @@ async def send_photo(mes, title_id, search_query):
 
 async def message_handler(update, context):
     global but, message_id, chat_id, loop
-    id = update.message.id
+    ide = update.message.from_user.id
+    print(update)
     status = 1
+    idm = update.message.message_id
     search_query = str(update.message.text).title()
+    print(str(idm))
     responses = [
         f"Great choice! {search_query} is awesome! 🔥 Check it out:",
         f"{search_query} is a classic! 🎥 Here's the link:",
@@ -406,14 +423,14 @@ async def message_handler(update, context):
             [[InlineKeyboardButton(text='join this group for movies', url='https://t.me/MovieMdiskDownload')]]))
 
     b = await get_results(search_query)
-    but[str(id)] = {'a_b': b, 'c_p': 0}
+    but[str(idm)] = {'a_b': b, 'c_p': 0}
     me = None
     if b:
         await messi.delete()
         pho = requests.get('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9RFoSyLQORtrxvqbYq5MY_HfWsCYNooRrzxHhuU9vBDU2sIW_9D1GjfapiBM8S_Ux52k&usqp=CAU')
         photo = BytesIO(pho.content)
         me = await bot.send_photo(chat_id=update.message.chat.id, caption='🎥🔍 Fetching movie details...',photo=photo, parse_mode='HTML')
-        but[str(id)]['reply'] = me
+        but[str(idm)]['reply'] = me
 
     app.add_handler(CallbackQueryHandler(button_callback))
     markup = []
@@ -423,11 +440,11 @@ async def message_handler(update, context):
     results = soap.find_all('li', attrs={'class': 'ipc-metadata-list-summary-item'}, limit=8)
     title_id = results[0].a['href']
     for item in results:
-        markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f'{item.a.string}|{id}|{update.message.chat.id}')])
+        markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f'{item.a.string}|{ide}')])
     if b:
-        mes = await getMessage(update, id, 0)
+        mes = await getMessage(update, ide,  idm, 0)
         mess = await send_photo(mes, title_id, search_query)
-        but[str(id)]['reply'] = mess
+        but[str(idm)]['reply'] = mess
         # await update.message.reply_text(text=f"🍿 *RESULTS FOR ➠ {search_query}*", reply_markup=getKeyboard(id), parse_mode='MarkdownV2')
         # reply = f"╒═════════════════════════╕\n<code>🍿 {search_query} </code>\n═══════════════════════════\n"
         # entities = []
@@ -439,11 +456,11 @@ async def message_handler(update, context):
         # message_id.append(mes.message_id)
         # t = threading.Timer(20.0, wrapper, args=[mes, id])
         # t.start()
-        task = asyncio.create_task(delete_message(id, mess))
+        task = asyncio.create_task(delete_message(idm, mess))
     else:
         await messi.delete()
         meu = await update.message.reply_text(text="🤔🎥 Can't find the movie. What's the name?" , reply_markup=InlineKeyboardMarkup(markup))
-        but[str(id)]['reply'] = meu
+        but[str(idm)]['reply'] = meu
 
 
 
