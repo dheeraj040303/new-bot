@@ -87,10 +87,8 @@ async def button_callback(update, context):
     qu = str(query.data).split('|')
     ide = qu[1]
     q = qu[0]
-    idm = update.callback_query.message.message_id - 2
-    if len(qu) >2 and qu[2] == "1":
-        idm -= 1
-    print(idm)
+    idm = qu[2]
+    print(str(idm) + "bc")
     user_id = update.callback_query.from_user.id
     print(f'{user_id}  {ide}')
     if not str(user_id) == str(ide):
@@ -171,8 +169,8 @@ async def getMessagde(update, ide, rep):
             button['url'], f'{text}')
         reply += cl
         entities.append(MessageEntityTextUrl(url=button['url'], length=len(text), offset=0).to_dict())
-    previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'previous|{ide}')
-    next_button = InlineKeyboardButton('Next ►►', callback_data=f'next|{ide}')
+    previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'previous|{ide}|{id}')
+    next_button = InlineKeyboardButton('Next ►►', callback_data=f'next|{ide}|{id}')
     backup = [InlineKeyboardButton('📢 Join our channel and stay informed! 📲', url='https://t.me/movie_paradize')]
     money = [InlineKeyboardButton('💰 Click here to make some cash! 💰', url='https://t.me/MovieMdiskDownload/3866')]
     if width == 2:
@@ -205,7 +203,7 @@ def array_prettify(a):
 
 
 async def getMessage(update,ide,  rep, sug):
-    print(update)
+    print(str(rep) + "getMsg")
     id = rep
     # if update.message:
     #     id = update.message.message_id
@@ -236,8 +234,8 @@ async def getMessage(update,ide,  rep, sug):
         text.replace("\n", "%0A")
         #design = f'───※ ·❆· ※───'.center(49)
         entities.append([InlineKeyboardButton(text, url=button['url'])])
-    previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'p|{ide}|{sug }')
-    next_button = InlineKeyboardButton('Next ►►', callback_data=f'n|{ide}|{sug}')
+    previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'p|{ide}|{id}')
+    next_button = InlineKeyboardButton('Next ►►', callback_data=f'n|{ide}|{id}')
     backup = [InlineKeyboardButton('📢 Join our channel and stay informed! 📲', url='https://t.me/movie_paradize')]
     money = [InlineKeyboardButton('💰 Click here to make some cash! 💰', url='https://t.me/MovieMdiskDownload/3866')]
     if width == 2:
@@ -297,24 +295,36 @@ async def send_initial(update, context):
 def get_movie_info(title_id):
     info_doc = getHTMLdocument(f'https://www.imdb.com/{title_id}')
     soap_d = BeautifulSoup(info_doc, 'html.parser')
+    main_info = soap_d.find('ul', attrs={'class':'ipc-inline-list ipc-inline-list--show-dividers sc-afe43def-4 kdXikI baseAlt'})
+    main_info = main_info.findChildren()
     genre = []
-    for item in soap_d.find_all('a', attrs={'class': 'ipc-chip ipc-chip--on-baseAlt'}):
+    for item in soap_d.find_all('span', attrs={'class': 'ipc-chip__text'}):
         genre.append(item.string)
     image = soap_d.find('a', attrs={'class': 'ipc-lockup-overlay ipc-focusable'})
+    print(len(main_info))
     detail = {
         'title': soap_d.title.string,
-        'ratings': soap_d.find('span', attrs={'class': 'sc-e457ee34-1 squoh'}).string,
+        'ratings': soap_d.find('span', attrs={'class': 'sc-bde20123-1 iZlgcd'}).string,
+        'type': main_info[0].string,
         'genre': genre,
-        'release':soap_d.find('a', attrs={'class': 'ipc-link ipc-link--baseAlt ipc-link--inherit-color'}).string,
-        'desc':soap_d.find('span', attrs={'class': 'sc-35061649-1 NHBDz'}).string
+        'release':main_info[1].string.split('–')[0],
+        'age': main_info[0].string,
+        'dur':'NA',
+        'desc':soap_d.find('span', attrs={'class': 'sc-5f699a2-1 cfkOAP'}).string
     }
+    if len(main_info) > 5:
+        detail['dur'] = main_info[5].string
+        detail['type'] = main_info[4].string
+    elif len(main_info) >= 4:
+        detail['dur'] = main_info[4].string
+        detail['type'] = main_info[2].string
+    genre = genre.remove('Back to top')
     title = detail["title"].split("-")[0]
     genre = array_prettify(detail["genre"])
     rating = detail["ratings"]
-
     # Escape special characters in title to prevent parse_mode errors
     title = html.escape(title)
-    text = f'\n🎥 <b>Title:</b> {title}\n\n📅 <b>Release date:</b> {detail["release"]}\n\n🎭 <b>Genre:</b> {genre}\n\n⭐ <b>Rating:</b> {rating}/10\n\n📝 <b>Description</b>: {detail["desc"]}\n'
+    text = f'\n🎥 <b>Title:</b> {title}\n\n📅 <b>Release date:</b> {detail["release"]}\n\n🎭 <b>Genre:</b> {genre}\n\n⏰ <b>Duration: </b>{detail["dur"]}\n\n📺 <b>Type: </b>{detail["type"]}\n\n⭐ <b>IMDB Rating:</b> {rating}/10\n\n📝 <b>Description</b>: {detail["desc"]}\n'
     return text
 
 
@@ -440,7 +450,7 @@ async def message_handler(update, context):
     results = soap.find_all('li', attrs={'class': 'ipc-metadata-list-summary-item'}, limit=8)
     title_id = results[0].a['href']
     for item in results:
-        markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f'{item.a.string}|{ide}')])
+        markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f'{item.a.string}|{ide}|{idm}')])
     if b:
         mes = await getMessage(update, ide,  idm, 0)
         mess = await send_photo(mes, title_id, search_query)
