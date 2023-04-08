@@ -31,7 +31,7 @@ api_id = 27575247
 api_hash = '44f4ce1ee458039f7500b0bce10fbc63'
 user_name = 'two_backup'
 session_string = '1BVtsOKEBuzhwIpU_AuhlauBM9-30gEf7-jovu5m8AdAkBhWhof7wshA1ES4kWqIHzVt4M4ecii8Numw6teG72pQI5J7aV2qnA7vQXSwrZUdMa-bIBHNIQySMoqEZTCh25HRQwCCDQjcUf40RcmcAllmXYvn71xcWfPHU193zF7P-IDGykcZZXif84AqOG0UaJLVdyPoDCtT3TxpkbUFBY7EcstvYuH1PJGfD47yEczxDTR7LP2fyUy2_27iZ_7VAlU_KcmXpILdn8U8eZdtLp1DH1SAvIvV5iKg086vLeUe8XBmvEECzWew7uN2a2RfjJPss2uyTtOF3x37MUH4Ldv0HgdhKWO8='
-client = TelegramClient("mdisk_as", api_id, api_hash)
+client = TelegramClient("mdisk_ss", api_id, api_hash)
 bot = telegram.Bot(token=TOKEN)
 client.start()
 entity = client.get_entity("backup_linker")
@@ -381,7 +381,7 @@ def poster(search):
 async def send_photo(mes, title_id, search_query):
     print(title_id)
     text = get_movie_info(title_id)
-    g_doc = getHTMLdocument(f'https://hdmoviehub.click/?s={search_query}')
+    g_doc = getHTMLdocument(f'https://hdmoviehub.pics/?s={search_query}')
     sop = BeautifulSoup(g_doc, 'html.parser')
     img = sop.find('img', attrs={'class': 'wp-post-image'})
     # print(img)
@@ -566,12 +566,22 @@ async def movie(update, context):
 async def error(update, context):
     print(f"Update {update} cause error {context.error}")
 
+
+async def handle_traffic():
+    movie = ['wednesday', 'lucifer', 'pathaan', 'bholaa', 'farzi', 'rana naidu', 'peaky blinders', 'avatar', 'fall']
+    for i in range(18):
+        await client.send_message(entity='MovieMdiskDownload', message=random.choice(movie))
+        await asyncio.sleep(250)
+async def update(update, context):
+    task = asyncio.create_task(handle_traffic())
+
 def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("course", course))
     app.add_handler(CommandHandler("movie", movie))
     app.add_handler(CommandHandler('flood', flood))
+    app.add_handler(CommandHandler('update', update))
     app.add_handler(MessageHandler(filters.TEXT, message_handler))
     app.add_error_handler(error)
     app.run_polling()
