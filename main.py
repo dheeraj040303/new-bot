@@ -11,6 +11,7 @@ import asyncio
 import re
 import urllib.request
 import time
+from flask import Flask
 import requests
 import telegram
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, InputFile
@@ -20,8 +21,6 @@ from io import BytesIO
 import response
 import response as R
 from telethon import TelegramClient, sync
-from urlextract import URLExtract
-extractor = URLExtract()
 from mdisky import Mdisk
 from bs4 import BeautifulSoup
 # Define the token of your bot
@@ -44,12 +43,18 @@ message_id = []
 chat_id = None
 
 
+appp = Flask(__name__)
+
+@appp.route("/")
+def hello_world():
+    return "<p>Hello, World!</p>"
+
+
 def getHTMLdocument(url):
     # request for HTML document of given url
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Mobile Safari/537.36'})
     # response will be provided in JSON format
     return response.text
-
 
 
 
