@@ -18,8 +18,6 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import *
 from telethon.tl.types import MessageEntityTextUrl
 from io import BytesIO
-import response
-import response as R
 from telethon import TelegramClient, sync
 from mdisky import Mdisk
 from bs4 import BeautifulSoup
