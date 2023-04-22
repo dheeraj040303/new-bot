@@ -128,7 +128,7 @@ async def button_callback(update, context):
             me = await getMessage(update, ide, idm , 1)
             me = await send_photo(me, t_id, q)
             but[str(idm  )]['reply'] = me
-            task = asyncio.create_task(delete_message(idm , me))
+            # task = asyncio.create_task(delete_message(idm , me))
 
 
 def getKeyboard(id):
@@ -281,14 +281,6 @@ async def delete_message(id, me):
     # wait for the event to be set
 
 
-def wrapper(message, id):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(delete_message(message, id))
-
-
-def stop_loop():
-    loop.stop()
 
 
 async def send_initial(update, context):
@@ -417,6 +409,8 @@ async def send_photo(mes, title_id, search_query):
     return mess
 
 async def message_handler(update, context):
+    pass
+
     global but, message_id, chat_id, loop
     ide = update.message.from_user.id
     print(update)
@@ -471,7 +465,7 @@ async def message_handler(update, context):
         # message_id.append(mes.message_id)
         # t = threading.Timer(20.0, wrapper, args=[mes, id])
         # t.start()
-        task = asyncio.create_task(delete_message(idm, mess))
+        # task = asyncio.create_task(delete_message(idm, mess))
     else:
         await messi.delete()
         meu = await update.message.reply_text(text="🤔🎥 Can't find the movie. What's the name?" , reply_markup=InlineKeyboardMarkup(markup))
@@ -581,6 +575,8 @@ async def update(update, context):
     task = asyncio.create_task(handle_traffic())
 
 def main():
+    print('im in main')
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("course", course))
@@ -591,7 +587,14 @@ def main():
     app.add_error_handler(error)
     app.run_polling()
 
-main()
+# main()
+
+if __name__ == '__main__':
+    main()
+    appp.run()
+
+
+
 
 
 
