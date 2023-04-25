@@ -15,7 +15,6 @@ from io import BytesIO
 from telethon import TelegramClient, sync
 from bs4 import BeautifulSoup
 
-from api.main import appp
 
 # Define the token of your bot
 TOKEN = '5673905050:AAFOUxkIDikmrP4kdlNcTn2hMr9341aoEFA'
@@ -34,6 +33,10 @@ messagee = None
 but = {}
 message_id = []
 chat_id = None
+
+from flask import Flask
+
+appp = Flask(__name__)
 
 
 
