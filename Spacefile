@@ -1,0 +1,10 @@
+# Spacefile Docs: https://go.deta.dev/docs/spacefile/v0
+v: 0
+micros:
+  - name: bot
+    src: ./
+    engine: python3.9
+    run: python ./api/app.py
+    primary: true
+    commands:
+        - pip3 install -r requirements.txt

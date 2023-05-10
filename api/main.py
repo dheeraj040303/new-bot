@@ -1,4 +1,3 @@
-
 import html
 import math
 import os
@@ -316,7 +315,6 @@ async def get_results(search_query):
     b = []
     print(mov)
     async for m in mov:
-        print(m)
         content = m.text
         if not content:
             content = m.caption
