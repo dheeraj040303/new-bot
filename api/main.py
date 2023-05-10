@@ -7,6 +7,7 @@ import re
 import time
 import requests
 import telegram
+from pyrogram.enums import ParseMode
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, InputFile
 from telegram.ext import *
 from telethon.tl.types import MessageEntityTextUrl
@@ -80,18 +81,22 @@ async def button_callback(update, context):
     idm = qu[2]
     ide = None
     user = None
+    id = None
     if not q == 'RC':
         ide = but[str(idm)]['ide']
         user = but[str(idm)]['user']
+        id = but[str(idm)]['id']
     print(str(idm) + "bc")
     user_id = update.callback_query.from_user.id
     print(f'{user_id}  {ide}')
     if qu[0] == 'RC':
         re = req[str(idm)]['mes']
         user = req[str(idm)]['user']
+        id = req[str(idm)]['id']
+        user = f'[{user}](tg://user?id={id})'
         del req[str(idm)]
         await re.edit_text("Movie added.")
-        await bot.send_message(chat_id=qu[3], text=f'Hey!! @{user}\n"{qu[1]}" movie is added to the database\nPlease search again...')
+        await bot.send_message(chat_id=qu[3], text=f'Hey!! {user}\n"{qu[1]}" movie is added to the database\nPlease search again...', parse_mode='Markdown')
     elif not str(user_id) == str(ide):
         await query.answer("Don't touch others property search on your own", show_alert=True)
     elif q == f'p':
@@ -107,10 +112,11 @@ async def button_callback(update, context):
         await getMessage(update,ide, idm, 0)
     elif q == 'r':
         chat_id = update.callback_query.message.chat.id
-        await client.send_message(chat_id='requ18',text=f'Request\n{qu[1]}\n{user}\n{chat_id}')
+        await client.send_message(chat_id='requ18',text=f'Request\n{qu[1]}\n{user}\n{id}\n{chat_id}')
         m = but[str(idm)]['reply']
+        mention = f'[{user}](tg://user?id={id})'
         await m.delete()
-        await bot.send_message(chat_id=chat_id, text=f'🎉 @{user} Your request for "{qu[1]}" was successful! 🎉')
+        await bot.send_message(chat_id=chat_id, text=f'🎉 {mention} Your request for "{qu[1]}" was successful! 🎉', parse_mode='Markdown')
     else:
         chat_id = update.callback_query.message.chat.id
         m = but[str(idm )]['reply']
@@ -276,9 +282,9 @@ async def extract_link(string):
 async def delete_message(id, me):
     # create an event
     global but
-    await asyncio.sleep(180)
+    await asyncio.sleep(150)
     # await message.delete()
-    await me.edit_caption(caption=me.caption + "\n\n🔍🕵️‍♀️ SEARCH AGAIN! 🤔👀\n")
+    await me.edit_caption(caption=me.caption + "\n\n🔍🕵️‍♀️ *SEARCH AGAIN!* 🤔👀\n", parse_mode='Markdown')
     del but[str(id)]
     # wait for the event to be set
 
@@ -323,7 +329,7 @@ def get_movie_info(title_id):
     rating = detail["ratings"]
     # Escape special characters in title to prevent parse_mode errors
     title = html.escape(title)
-    text = f'\n🎥 <b>Title:</b> {title}\n\n📅 <b>Release date:</b> {detail["release"]}\n\n🎭 <b>Genre:</b> {genre}\n\n⏰ <b>Duration: </b>{detail["dur"]}\n\n📺 <b>Type: </b>{detail["type"]}\n\n⭐ <b>IMDB Rating:</b> {rating}/10\n\n📝 <b>Description</b>: {detail["desc"]}\n'
+    text = f'\n🎥 *Title:* {title}\n\n📅 *Release date:* {detail["release"]}\n\n🎭 *Genre:* {genre}\n\n⏰ *Duration: *{detail["dur"]}\n\n📺 *Type: *{detail["type"]}\n\n⭐ *IMDB Rating:* {rating}/10\n\n📝 *Description: * {detail["desc"]}\n'
     return text
 
 
@@ -379,7 +385,8 @@ def poster(search):
     photo = BytesIO(pho.content)
     return photo
 
-async def send_photo(mes, title_id, search_query):
+
+async def send_photo(mes, title_id, idm):
     text = get_movie_info(title_id)
     title_id = title_id[7:17]
     print(title_id)
@@ -387,33 +394,43 @@ async def send_photo(mes, title_id, search_query):
     g_doc = getHTMLdocument(f'https://www.cinematerial.com/search?q={title_id}')
     sop = BeautifulSoup(g_doc, 'html.parser')
     img = sop.find('a', attrs={'style': 'font-weight: bold; font-size: 1.1em'})
-    t_doc = getHTMLdocument(f'https://www.cinematerial.com{img["href"]}')
-    toap = BeautifulSoup(t_doc, 'html.parser')
-    img = toap.find('img', attrs={'class': 'lazy'})
+    if img:
+        t_doc = getHTMLdocument(f'https://www.cinematerial.com{img["href"]}')
+        toap = BeautifulSoup(t_doc, 'html.parser')
+        img = toap.find('img', attrs={'class': 'lazy'})
     photo = None
+    user = but[str(idm)]['user']
+    id = but[str(idm)]['id']
+    mention = f'[{user}](tg://user?id={id})'
     if img:
         img = img['data-src']
         pho = requests.get(img)
         photo = BytesIO(pho.content)
+
+        mes = await mes.edit_media(media=InputMediaPhoto(photo), reply_markup=mes.reply_markup)
+        mess = await mes.edit_caption(caption=f'*Requested by:  *{mention}\n{text}', parse_mode='Markdown',
+                                      reply_markup=mes.reply_markup)
+        return mess
     # photo = BytesIO(image_bytes)
             # photo.close()
     else :
-        t_doc = getHTMLdocument(f'https://www.movieposterdb.com/search?q={title_id}')
-        toap = BeautifulSoup(t_doc, 'html.parser')
-        imgd = toap.find('img', attrs={'class': 'poster_img'})
-        print(imgd)
-        print(imgd['src'])
-        if imgd:
-            img = imgd['src']
-            pho = requests.get(img)
-            photo = BytesIO(pho.content)
+        # t_doc = getHTMLdocument(f'https://www.movieposterdb.com/search?q={title_id}')
+        # toap = BeautifulSoup(t_doc, 'html.parser')
+        # imgd = toap.find('img', attrs={'class': 'poster_img'})
+        # print(imgd)
+        # print(imgd['src'])
+        # if imgd:
+        #     img = imgd['src']
+        #     pho = requests.get(img)
+        #     photo = BytesIO(pho.content)
+        mess = await mes.edit_caption(caption=f'*Requested by:  *{mention}\n{text}', parse_mode='Markdown',
+                                      reply_markup=mes.reply_markup)
+        return mess
     # photo = poster(search_query)
-    mes = await mes.edit_media(media=InputMediaPhoto(photo), reply_markup=mes.reply_markup)
-    mess = await mes.edit_caption(caption=text, parse_mode='HTML', reply_markup=mes.reply_markup)
-    return mess
+
+
 
 async def message_handler(update, context):
-
     global but, message_id, chat_id, loop, req
     ide = update.message.from_user.id
     print(update)
@@ -424,9 +441,10 @@ async def message_handler(update, context):
     if search_query.splitlines()[0] == 'Request':
         request = search_query.splitlines()[1]
         user = search_query.splitlines()[2]
-        c_id = search_query.splitlines()[3]
+        u_id = search_query.splitlines()[3]
+        c_id = search_query.splitlines()[4]
         r = await update.message.reply_text(f'"{request}" added?', reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Yes', callback_data=f'RC|{request}|{idm}|{c_id}')]]))
-        req[str(idm)] = {'mes' : r, 'user': user}
+        req[str(idm)] = {'mes' : r, 'user': user, 'id': u_id}
         return
     print(str(idm))
     print(update.message)
@@ -444,11 +462,11 @@ async def message_handler(update, context):
             [[InlineKeyboardButton(text='join this group for movies', url='https://t.me/MovieMdiskDownload')]]))
 
     b = await get_results(search_query)
-    but[str(idm)] = {'a_b': b, 'c_p': 0, 'ide':ide, 'user': update.message.from_user.username}
+    but[str(idm)] = {'a_b': b, 'c_p': 0, 'ide':ide, 'user': update.message.from_user.first_name, 'id': update.message.from_user.id}
     me = None
     if b:
         await messi.delete()
-        pho = requests.get('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9RFoSyLQORtrxvqbYq5MY_HfWsCYNooRrzxHhuU9vBDU2sIW_9D1GjfapiBM8S_Ux52k&usqp=CAU')
+        pho = requests.get('https://gamespot.com/a/uploads/screen_small/mig/4/4/1/5/2104415-169_darkesthour_ot_pc_022411.jpg')
         photo = BytesIO(pho.content)
         me = await bot.send_photo(chat_id=update.message.chat.id, caption='🎥🔍 Fetching movie details...',photo=photo, parse_mode='HTML')
         but[str(idm)]['reply'] = me
@@ -465,7 +483,7 @@ async def message_handler(update, context):
     markup.append([InlineKeyboardButton(text="Click here to request", callback_data=f'r|{search_query}|{idm}')])
     if b:
         mes = await getMessage(update, ide,  idm, 0)
-        mess = await send_photo(mes, title_id, search_query)
+        mess = await send_photo(mes, title_id, idm)
         but[str(idm)]['reply'] = mess
         # await update.message.reply_text(text=f"🍿 *RESULTS FOR ➠ {search_query}*", reply_markup=getKeyboard(id), parse_mode='MarkdownV2')
         # reply = f"╒═════════════════════════╕\n<code>🍿 {search_query} </code>\n═══════════════════════════\n"
