@@ -14,6 +14,8 @@ from telethon.tl.types import MessageEntityTextUrl
 from io import BytesIO
 from telethon import TelegramClient, sync
 from bs4 import BeautifulSoup
+import socks
+import socket
 
 
 # Define the token of your bot
@@ -23,6 +25,8 @@ api_id = 27575247
 api_hash = '44f4ce1ee458039f7500b0bce10fbc63'
 user_name = 'two_backup'
 session_string = '1BVtsOKEBuzhwIpU_AuhlauBM9-30gEf7-jovu5m8AdAkBhWhof7wshA1ES4kWqIHzVt4M4ecii8Numw6teG72pQI5J7aV2qnA7vQXSwrZUdMa-bIBHNIQySMoqEZTCh25HRQwCCDQjcUf40RcmcAllmXYvn71xcWfPHU193zF7P-IDGykcZZXif84AqOG0UaJLVdyPoDCtT3TxpkbUFBY7EcstvYuH1PJGfD47yEczxDTR7LP2fyUy2_27iZ_7VAlU_KcmXpILdn8U8eZdtLp1DH1SAvIvV5iKg086vLeUe8XBmvEECzWew7uN2a2RfjJPss2uyTtOF3x37MUH4Ldv0HgdhKWO8='
+
+socks.set_default_proxy(socks.HTTP, "81.31.186.33", 80)
 client = TelegramClient("s", api_id, api_hash)
 bot = telegram.Bot(token=TOKEN)
 client.start()
@@ -33,20 +37,6 @@ messagee = None
 but = {}
 message_id = []
 chat_id = None
-
-from flask import Flask
-
-appp = Flask(__name__)
-
-
-
-
-@appp.route('/')
-def hello():
-    return '<p>hello</p>'
-
-
-
 
 
 def getHTMLdocument(url):
@@ -67,12 +57,12 @@ async def starte(update, context):
     ]))
 
 class AsyncIter:
-    def __init__(self, items):    
-        self.items = items    
+    def __init__(self, items):
+        self.items = items
 
-    async def __aiter__(self):    
-        for item in self.items:    
-            yield item    
+    async def __aiter__(self):
+        for item in self.items:
+            yield item
 
 
 
@@ -325,6 +315,7 @@ def get_movie_info(title_id):
 
 
 async def get_results(search_query):
+    mov = None
     mov = client.iter_messages('backup_linker', search=search_query)
     seen = []
     b = []
@@ -375,11 +366,14 @@ def poster(search):
     return photo
 
 async def send_photo(mes, title_id, search_query):
-    print(title_id)
     text = get_movie_info(title_id)
-    g_doc = getHTMLdocument(f'https://hdmoviehub.pics/?s={search_query}')
-    sop = BeautifulSoup(g_doc, 'html.parser')
-    img = sop.find('img', attrs={'class': 'wp-post-image'})
+    title_id = title_id[7:17]
+    print(title_id)
+
+    # g_doc = getHTMLdocument(f'https://hdmoviehub.pics/?s={search_query}')
+    # sop = BeautifulSoup(g_doc, 'html.parser')
+    # img = sop.find('img', attrs={'class': 'wp-post-image'})
+    img = None
     # print(img)
     # image_bytes = base64.b64decode(img.split(',')[1])
     # t_doc = getHTMLdocument(f'https://search.brave.com/images?q={search_query}&source=web')
@@ -387,9 +381,10 @@ async def send_photo(mes, title_id, search_query):
     # img = toap.find('img', attrs={'class': 'image svelte-qd248k'})
     photo = None
     if img:
-        img = img['src']
-        pho = requests.get(img)
-        photo = BytesIO(pho.content)
+        pass
+        # img = img['src']
+        # pho = requests.get(img)
+        # photo = BytesIO(pho.content)
     # photo = BytesIO(image_bytes)
             # photo.close()
     else :
