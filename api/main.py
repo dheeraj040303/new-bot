@@ -444,7 +444,7 @@ async def message_handler(update, context):
             [[InlineKeyboardButton(text='join this group for movies', url='https://t.me/MovieMdiskDownload')]]))
 
     b = await get_results(search_query)
-    but[str(idm)] = {'a_b': b, 'c_p': 0, 'ide':ide, 'user': update.message.chat.username}
+    but[str(idm)] = {'a_b': b, 'c_p': 0, 'ide':ide, 'user': update.message.from_user.username}
     me = None
     if b:
         await messi.delete()
