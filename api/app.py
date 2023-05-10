@@ -98,6 +98,12 @@ async def button_callback(update, context):
         # keyboard = getKeyboard(id)
         # await query.edit_message_reply_markup(reply_markup=keyboard)
         await getMessage(update,ide, idm, 0)
+    elif q == 'r':
+        await client.send_message(chat_id='request18', )
+        chat_id = update.callback_query.message.chat.id
+        m = but[str(idm)]['reply']
+        await m.delete()
+        await bot.send_message(chat_id=chat_id, text='🎉 Your request was successful! 🎉')
     else:
         chat_id = update.callback_query.message.chat.id
         m = but[str(idm )]['reply']
@@ -117,7 +123,7 @@ async def button_callback(update, context):
             me = await getMessage(update, ide, idm , 1)
             me = await send_photo(me, t_id, q)
             but[str(idm  )]['reply'] = me
-            # task = asyncio.create_task(delete_message(idm , me))
+            task = asyncio.create_task(delete_message(idm , me))
 
 
 def getKeyboard(id):
@@ -231,7 +237,7 @@ async def getMessage(update,ide,  rep, sug):
     previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'p|{ide}|{id}')
     next_button = InlineKeyboardButton('Next ►►', callback_data=f'n|{ide}|{id}')
     backup = [InlineKeyboardButton('📢 Join our channel and stay informed! 📲', url='https://t.me/movie_paradize')]
-    money = [InlineKeyboardButton('💰 Click here to make some cash! 💰', url='https://t.me/MovieMdiskDownload/3866')]
+    money = [InlineKeyboardButton('💰 CGPT plus for free 💰', url='https://youtu.be/ziJzG3kskEY')]
     if width == 2:
         width = 48
     elif width == 3:
@@ -403,7 +409,6 @@ async def send_photo(mes, title_id, search_query):
     return mess
 
 async def message_handler(update, context):
-    pass
 
     global but, message_id, chat_id, loop
     ide = update.message.from_user.id
@@ -412,6 +417,7 @@ async def message_handler(update, context):
     idm = update.message.message_id
     search_query = str(update.message.text).title()
     print(str(idm))
+    print(update.message)
     responses = [
         f"Great choice! {search_query} is awesome! 🔥 Check it out:",
         f"{search_query} is a classic! 🎥 Here's the link:",
@@ -444,6 +450,7 @@ async def message_handler(update, context):
     title_id = results[0].a['href']
     for item in results:
         markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f'{item.a.string}|{ide}|{idm}')])
+    markup.append([InlineKeyboardButton(text="Click here to request", callback_data=f'r|{ide}|{search_query}|{update.message.chat.username}')])
     if b:
         mes = await getMessage(update, ide,  idm, 0)
         mess = await send_photo(mes, title_id, search_query)
@@ -459,7 +466,7 @@ async def message_handler(update, context):
         # message_id.append(mes.message_id)
         # t = threading.Timer(20.0, wrapper, args=[mes, id])
         # t.start()
-        # task = asyncio.create_task(delete_message(idm, mess))
+        task = asyncio.create_task(delete_message(idm, mess))
     else:
         await messi.delete()
         meu = await update.message.reply_text(text="🤔🎥 Can't find the movie. What's the name?" , reply_markup=InlineKeyboardMarkup(markup))

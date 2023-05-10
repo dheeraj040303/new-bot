@@ -29,6 +29,7 @@ loop = asyncio.new_event_loop()
 app = ApplicationBuilder().token(TOKEN).build()
 messagee = None
 but = {}
+req = {}
 message_id = []
 chat_id = None
 client = Client('my_account', api_id, api_hash)
@@ -73,14 +74,25 @@ async def button_callback(update, context):
     print(update)
     print(but)
     query = update.callback_query
+    print(req)
     qu = str(query.data).split('|')
-    ide = qu[1]
     q = qu[0]
     idm = qu[2]
+    ide = None
+    user = None
+    if not q == 'RC':
+        ide = but[str(idm)]['ide']
+        user = but[str(idm)]['user']
     print(str(idm) + "bc")
     user_id = update.callback_query.from_user.id
     print(f'{user_id}  {ide}')
-    if not str(user_id) == str(ide):
+    if qu[0] == 'RC':
+        re = req[str(idm)]['mes']
+        user = req[str(idm)]['user']
+        del req[str(idm)]
+        await re.edit_text("Movie added.")
+        await bot.send_message(chat_id=qu[3], text=f'Hey!! @{user}\n"{qu[1]}" movie is added to the database\nPlease search again...')
+    elif not str(user_id) == str(ide):
         await query.answer("Don't touch others property search on your own", show_alert=True)
     elif q == f'p':
         but[str(idm)]['c_p'] -= 1
@@ -93,13 +105,19 @@ async def button_callback(update, context):
         # keyboard = getKeyboard(id)
         # await query.edit_message_reply_markup(reply_markup=keyboard)
         await getMessage(update,ide, idm, 0)
+    elif q == 'r':
+        chat_id = update.callback_query.message.chat.id
+        await client.send_message(chat_id='requ18',text=f'Request\n{qu[1]}\n{user}\n{chat_id}')
+        m = but[str(idm)]['reply']
+        await m.delete()
+        await bot.send_message(chat_id=chat_id, text=f'🎉 @{user} Your request for "{qu[1]}" was successful! 🎉')
     else:
         chat_id = update.callback_query.message.chat.id
         m = but[str(idm )]['reply']
-        htmL_doc = getHTMLdocument(f'https://www.imdb.com/find/?s=tt&q={q}&ref_=nv_sr_sm')
+        htmL_doc = getHTMLdocument(f'https://www.imdb.com/find/?s=tt&q={qu[1]}&ref_=nv_sr_sm')
         soap = BeautifulSoup(htmL_doc, 'html.parser')
         t_id = soap.find('li', attrs={'class': 'ipc-metadata-list-summary-item'}).a['href']
-        b = await get_results(q)
+        b = await get_results(qu[1])
         if b:
             pho = requests.get(
                 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9RFoSyLQORtrxvqbYq5MY_HfWsCYNooRrzxHhuU9vBDU2sIW_9D1GjfapiBM8S_Ux52k&usqp=CAU')
@@ -112,7 +130,7 @@ async def button_callback(update, context):
             me = await getMessage(update, ide, idm , 1)
             me = await send_photo(me, t_id, q)
             but[str(idm  )]['reply'] = me
-            # task = asyncio.create_task(delete_message(idm , me))
+            task = asyncio.create_task(delete_message(idm , me))
 
 
 def getKeyboard(id):
@@ -345,7 +363,7 @@ async def get_results(search_query):
                             trun = 30 - len(current_line)
                             text = f'{title[:trun]}-{current_line}'
                             b.append({'text': text,
-                                      'url': f'https://oggylink.com/st?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={link}'})
+                                      'url': f'https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={link}'})
     return b
 
 
@@ -395,15 +413,23 @@ async def send_photo(mes, title_id, search_query):
     return mess
 
 async def message_handler(update, context):
-    pass
 
-    global but, message_id, chat_id, loop
+    global but, message_id, chat_id, loop, req
     ide = update.message.from_user.id
     print(update)
     status = 1
     idm = update.message.message_id
     search_query = str(update.message.text).title()
+    print(search_query)
+    if search_query.splitlines()[0] == 'Request':
+        request = search_query.splitlines()[1]
+        user = search_query.splitlines()[2]
+        c_id = search_query.splitlines()[3]
+        r = await update.message.reply_text(f'"{request}" added?', reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Yes', callback_data=f'RC|{request}|{idm}|{c_id}')]]))
+        req[str(idm)] = {'mes' : r, 'user': user}
+        return
     print(str(idm))
+    print(update.message)
     responses = [
         f"Great choice! {search_query} is awesome! 🔥 Check it out:",
         f"{search_query} is a classic! 🎥 Here's the link:",
@@ -418,7 +444,7 @@ async def message_handler(update, context):
             [[InlineKeyboardButton(text='join this group for movies', url='https://t.me/MovieMdiskDownload')]]))
 
     b = await get_results(search_query)
-    but[str(idm)] = {'a_b': b, 'c_p': 0}
+    but[str(idm)] = {'a_b': b, 'c_p': 0, 'ide':ide, 'user': update.message.chat.username}
     me = None
     if b:
         await messi.delete()
@@ -435,7 +461,8 @@ async def message_handler(update, context):
     results = soap.find_all('li', attrs={'class': 'ipc-metadata-list-summary-item'}, limit=8)
     title_id = results[0].a['href']
     for item in results:
-        markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f'{item.a.string}|{ide}|{idm}')])
+        markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f's|{item.a.string[:25]}|{idm}')])
+    markup.append([InlineKeyboardButton(text="Click here to request", callback_data=f'r|{search_query}|{idm}')])
     if b:
         mes = await getMessage(update, ide,  idm, 0)
         mess = await send_photo(mes, title_id, search_query)
@@ -451,7 +478,7 @@ async def message_handler(update, context):
         # message_id.append(mes.message_id)
         # t = threading.Timer(20.0, wrapper, args=[mes, id])
         # t.start()
-        # task = asyncio.create_task(delete_message(idm, mess))
+        task = asyncio.create_task(delete_message(idm, mess))
     else:
         await messi.delete()
         meu = await update.message.reply_text(text="🤔🎥 Can't find the movie. What's the name?" , reply_markup=InlineKeyboardMarkup(markup))
