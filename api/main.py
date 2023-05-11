@@ -112,7 +112,8 @@ async def button_callback(update, context):
         await getMessage(update,ide, idm, 0)
     elif q == 'r':
         chat_id = update.callback_query.message.chat.id
-        await client.send_message(chat_id='requ18',text=f'Request\n{qu[1]}\n{user}\n{id}\n{chat_id}')
+        print(user)
+        await client.send_message(chat_id='requ18',text=f'Request\n{qu[1]}\n{idm}\n{chat_id}')
         m = but[str(idm)]['reply']
         mention = f'[{user}](tg://user?id={id})'
         await m.delete()
@@ -126,7 +127,7 @@ async def button_callback(update, context):
         b = await get_results(qu[1])
         if b:
             pho = requests.get(
-                'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9RFoSyLQORtrxvqbYq5MY_HfWsCYNooRrzxHhuU9vBDU2sIW_9D1GjfapiBM8S_Ux52k&usqp=CAU')
+                'https://gamespot.com/a/uploads/screen_small/mig/4/4/1/5/2104415-169_darkesthour_ot_pc_022411.jpg')
             photo = BytesIO(pho.content)
             but[str(idm )]['a_b'] = b
             await m.delete()
@@ -134,7 +135,7 @@ async def button_callback(update, context):
                                       photo=photo, parse_mode='HTML')
             but[str(idm )]['reply'] = me
             me = await getMessage(update, ide, idm , 1)
-            me = await send_photo(me, t_id, q)
+            me = await send_photo(me, t_id, idm)
             but[str(idm  )]['reply'] = me
             task = asyncio.create_task(delete_message(idm , me))
 
@@ -250,7 +251,7 @@ async def getMessage(update,ide,  rep, sug):
     previous_button = InlineKeyboardButton('◄◄ Back', callback_data=f'p|{ide}|{id}')
     next_button = InlineKeyboardButton('Next ►►', callback_data=f'n|{ide}|{id}')
     backup = [InlineKeyboardButton('📢 Join our channel and stay informed! 📲', url='https://t.me/movie_paradize')]
-    money = [InlineKeyboardButton('💰 Click here to make some cash! 💰', url='https://t.me/MovieMdiskDownload/3866')]
+    money = [InlineKeyboardButton('💰 GPT-4 Plus subscription for free! 💰', url='https://youtu.be/ziJzG3kskEY')]
     if width == 2:
         width = 48
     elif width == 3:
@@ -440,11 +441,10 @@ async def message_handler(update, context):
     print(search_query)
     if search_query.splitlines()[0] == 'Request':
         request = search_query.splitlines()[1]
-        user = search_query.splitlines()[2]
-        u_id = search_query.splitlines()[3]
-        c_id = search_query.splitlines()[4]
+        m_id = search_query.splitlines()[2]
+        c_id = search_query.splitlines()[3]
         r = await update.message.reply_text(f'"{request}" added?', reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Yes', callback_data=f'RC|{request}|{idm}|{c_id}')]]))
-        req[str(idm)] = {'mes' : r, 'user': user, 'id': u_id}
+        req[str(idm)] = {'mes' : r, 'user': but[str(m_id)]['user'] , 'id': but[str(m_id)]['id']}
         return
     print(str(idm))
     print(update.message)
