@@ -237,7 +237,7 @@ async def getMessage(update,ide,  rep, sug):
     sq = f'{q[:10]}...'.upper()
     if not rep:
         sq = update.message.text.upper()
-    entities = []
+    entities = [[InlineKeyboardButton('How to download', url='https://t.me/how_to_download_movie_mmd/2')]]
     for button in page_buttons:
         # response = requests.get(
         #     f'https://oggylink.com/api?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={button["url"]}')
@@ -303,6 +303,7 @@ def get_movie_info(title_id):
     soap_d = BeautifulSoup(info_doc, 'html.parser')
     main_info = soap_d.find('ul', attrs={'class':'ipc-inline-list ipc-inline-list--show-dividers sc-afe43def-4 kdXikI baseAlt'})
     main_info = main_info.findChildren()
+    print(main_info)
     genre = []
     for item in soap_d.find_all('span', attrs={'class': 'ipc-chip__text'}):
         genre.append(item.string)
@@ -313,10 +314,10 @@ def get_movie_info(title_id):
         'ratings': soap_d.find('span', attrs={'class': 'sc-bde20123-1 iZlgcd'}).string,
         'type': main_info[0].string,
         'genre': genre,
-        'release':main_info[1].string.split('–')[0],
+        'release':main_info[0].string.split('–')[0],
         'age': main_info[0].string,
         'dur':'NA',
-        'desc':soap_d.find('span', attrs={'class': 'sc-5f699a2-1 cfkOAP'}).string
+        'desc':soap_d.find('span', attrs={'class': 'sc-2eb29e65-0 hOntMS'}).string
     }
     if len(main_info) > 5:
         detail['dur'] = main_info[5].string
@@ -388,6 +389,7 @@ def poster(search):
 
 
 async def send_photo(mes, title_id, idm):
+    print(title_id)
     text = get_movie_info(title_id)
     title_id = title_id[7:17]
     print(title_id)
@@ -464,23 +466,29 @@ async def message_handler(update, context):
     b = await get_results(search_query)
     but[str(idm)] = {'a_b': b, 'c_p': 0, 'ide':ide, 'user': update.message.from_user.first_name, 'id': update.message.from_user.id}
     me = None
-    if b:
-        await messi.delete()
-        pho = requests.get('https://gamespot.com/a/uploads/screen_small/mig/4/4/1/5/2104415-169_darkesthour_ot_pc_022411.jpg')
-        photo = BytesIO(pho.content)
-        me = await bot.send_photo(chat_id=update.message.chat.id, caption='🎥🔍 Fetching movie details...',photo=photo, parse_mode='HTML')
-        but[str(idm)]['reply'] = me
-
-    app.add_handler(CallbackQueryHandler(button_callback))
     markup = []
     htmL_doc = getHTMLdocument(f'https://www.imdb.com/find/?s=tt&q={search_query}&ref_=nv_sr_sm')
     title_id = None
     soap = BeautifulSoup(htmL_doc, 'html.parser')
-    results = soap.find_all('li', attrs={'class': 'ipc-metadata-list-summary-item'}, limit=8)
+    results = soap.find_all('li', attrs={
+        'class': 'ipc-metadata-list-summary-item ipc-metadata-list-summary-item--click find-result-item find-title-result'},
+                            limit=8)
+
     title_id = results[0].a['href']
+    img = results[0].img['src']
     for item in results:
+        print(item)
         markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f's|{item.a.string[:25]}|{idm}')])
     markup.append([InlineKeyboardButton(text="Click here to request", callback_data=f'r|{search_query}|{idm}')])
+    if b:
+        await messi.delete()
+        pho = requests.get(img)
+        photo = BytesIO(pho.content)
+        me = await bot.send_photo(chat_id=update.message.chat.id, caption='🎥🔍 Fetching movie...',photo=photo, parse_mode='HTML')
+        but[str(idm)]['reply'] = me
+
+    app.add_handler(CallbackQueryHandler(button_callback))
+
     if b:
         mes = await getMessage(update, ide,  idm, 0)
         mess = await send_photo(mes, title_id, idm)
