@@ -371,7 +371,7 @@ async def get_results(search_query):
                             trun = 30 - len(current_line)
                             text = f'{title[:trun]}-{current_line}'
                             b.append({'text': text,
-                                      'url': f'{link}'})
+                                      'url': f'https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={link}'})
     return b
 
 
