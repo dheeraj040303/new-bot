@@ -17,8 +17,6 @@ from bs4 import BeautifulSoup
 import socks
 import socket
 
-
-# Define the token of your bot
 TOKEN = '5673905050:AAFOUxkIDikmrP4kdlNcTn2hMr9341aoEFA'
 mdisk_api_key = 'GrG0naDSbxAqEjp0Owz0'
 api_id = 27575247
