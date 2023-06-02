@@ -467,7 +467,15 @@ async def message_handler(update, context):
     but[str(idm)] = {'a_b': b, 'c_p': 0, 'ide':ide, 'user': update.message.from_user.first_name, 'id': update.message.from_user.id}
     me = None
     markup = []
-    htmL_doc = getHTMLdocument(f'https://www.imdb.com/find/?s=tt&q={search_query}&ref_=nv_sr_sm')
+
+    search_query.replace("terabox", "")
+    search_query.replace('hindi', '')
+    search_query.replace('movie', '')
+    search_query.replace('link', '')
+    search_query.replace('plz', '')
+
+    print(search_query)
+    htmL_doc = getHTMLdocument(f'https://www.imdb.com/find/?s=tt&q={search_query[:15]}&ref_=nv_sr_sm')
     title_id = None
     soap = BeautifulSoup(htmL_doc, 'html.parser')
     results = soap.find_all('li', attrs={
@@ -475,7 +483,11 @@ async def message_handler(update, context):
                             limit=8)
 
     title_id = results[0].a['href']
-    img = results[0].img['src']
+    print('fuck')
+    img = 'https://i.ibb.co/hHhMMP4/0832718b-b7d3-45e8-aaf1-88e515c96044.jpg'
+    if not results[0].img == None:
+        img = results[0].img['src']
+
     for item in results:
         print(item)
         markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f's|{item.a.string[:25]}|{idm}')])
