@@ -283,7 +283,7 @@ async def extract_link(string):
 async def delete_message(id, me):
     # create an event
     global but
-    await asyncio.sleep(150)
+    await asyncio.sleep(250)
     # await message.delete()
     await me.edit_caption(caption=me.caption + "\n\n🔍🕵️‍♀️ *SEARCH AGAIN!* 🤔👀\n", parse_mode='Markdown')
     del but[str(id)]
@@ -298,41 +298,44 @@ async def send_initial(update, context):
     await mes.delete()
 
 
-def get_movie_info(title_id):
-    info_doc = getHTMLdocument(f'https://www.imdb.com/{title_id}')
-    soap_d = BeautifulSoup(info_doc, 'html.parser')
-    main_info = soap_d.find('ul', attrs={'class':'ipc-inline-list ipc-inline-list--show-dividers sc-afe43def-4 kdXikI baseAlt'})
-    main_info = main_info.findChildren()
-    print(main_info)
-    genre = []
-    for item in soap_d.find_all('span', attrs={'class': 'ipc-chip__text'}):
-        genre.append(item.string)
-    image = soap_d.find('a', attrs={'class': 'ipc-lockup-overlay ipc-focusable'})
-    print(len(main_info))
+def get_movie_info(title_id, s):
+    data = requests.get(f' http://www.omdbapi.com/?i=tt3896198&apikey=1357bb40&t={s}')
+    data = data.json()
+    print(data)
+    # info_doc = getHTMLdocument(f'https://www.imdb.com/{title_id}')
+    # soap_d = BeautifulSoup(info_doc, 'html.parser')
+    # main_info = soap_d.find('ul', attrs={'class':'ipc-inline-list ipc-inline-list--show-dividers sc-afe43def-4 kdXikI baseAlt'})
+    # main_info = main_info.findChildren()
+    # print(main_info)
+    # genre = []
+    # for item in soap_d.find_all('span', attrs={'class': 'ipc-chip__text'}):
+    #     genre.append(item.string)
+    # image = soap_d.find('a', attrs={'class': 'ipc-lockup-overlay ipc-focusable'})
+    # print(len(main_info))
     detail = {
-        'title': soap_d.title.string,
-        'ratings': soap_d.find('span', attrs={'class': 'sc-bde20123-1 iZlgcd'}).string,
-        'type': main_info[0].string,
-        'genre': genre,
-        'release':main_info[0].string.split('–')[0],
-        'age': main_info[0].string,
+        'title': data['Title'],
+        'ratings': data['imdbRating'],
+        'type': data['Type'],
+        'genre': data['Genre'],
+        'release':data['Released'],
+        'age': data['Rated'],
         'dur':'NA',
-        'desc':soap_d.find('span', attrs={'class': 'sc-2eb29e65-0 hOntMS'}).string
+        'desc':data['Plot']
     }
-    if len(main_info) > 5:
-        detail['dur'] = main_info[5].string
-        detail['type'] = main_info[4].string
-    elif len(main_info) >= 4:
-        detail['dur'] = main_info[4].string
-        detail['type'] = main_info[2].string
-    genre = genre.remove('Back to top')
-    title = detail["title"].split("-")[0]
-    genre = array_prettify(detail["genre"])
-    rating = detail["ratings"]
+    # if len(main_info) > 5:
+    #     detail['dur'] = main_info[5].string
+    #     detail['type'] = main_info[4].string
+    # elif len(main_info) >= 4:
+    #     detail['dur'] = main_info[4].string
+    #     detail['type'] = main_info[2].string
+    # genre = genre.remove('Back to top')
+    # title = detail["title"].split("-")[0]
+    # genre = array_prettify(detail["genre"])
+    # rating = detail["ratings"]
     # Escape special characters in title to prevent parse_mode errors
-    title = html.escape(title)
-    text = f'\n🎥 *Title:* {title}\n\n📅 *Release date:* {detail["release"]}\n\n🎭 *Genre:* {genre}\n\n⏰ *Duration: *{detail["dur"]}\n\n📺 *Type: *{detail["type"]}\n\n⭐ *IMDB Rating:* {rating}/10\n\n📝 *Description: * {detail["desc"]}\n'
-    return text
+    # title = html.escape(title)
+    text = f'\n🎥 *Title:* {data["Title"]}\n\n📅 *Release date:* {detail["release"]}\n\n🎭 *Genre:* {detail["genre"]}\n\n⏰ *Duration: *{detail["dur"]}\n\n📺 *Type: *{detail["type"]}\n\n⭐ *IMDB Rating:* {detail["ratings"]}/10\n\n📝 *Description: * {detail["desc"]}\n'
+    return {'text': text, 'poster': data['Poster']}
 
 
 async def get_results(search_query):
@@ -388,55 +391,71 @@ def poster(search):
     return photo
 
 
-async def send_photo(mes, title_id, idm):
+async def send_photo(mes, title_id, idm, s):
     print(title_id)
-    text = get_movie_info(title_id)
-    title_id = title_id[7:17]
+    data = get_movie_info(title_id, s)
+    text = data['text']
+    title_id = title_id[7:24]
     print(title_id)
-
-    g_doc = getHTMLdocument(f'https://www.cinematerial.com/search?q={title_id}')
-    sop = BeautifulSoup(g_doc, 'html.parser')
-    img = sop.find('a', attrs={'style': 'font-weight: bold; font-size: 1.1em'})
-    if img:
-        t_doc = getHTMLdocument(f'https://www.cinematerial.com{img["href"]}')
-        toap = BeautifulSoup(t_doc, 'html.parser')
-        img = toap.find('img', attrs={'class': 'lazy'})
-    photo = None
+    # https://www.cinematerial.com{img["href"]}
+    # g_doc = getHTMLdocument(f'https://www.cinematerial.com/search?q={title_id}')
+    # sop = BeautifulSoup(g_doc, 'html.parser')
+    # img = sop.find('a', attrs={'style': 'font-weight: bold; font-size: 1.1em'})
+    # if img:
+    #     t_doc = getHTMLdocument(f'https://www.cinematerial.com{img["href"]}')
+    #     toap = BeautifulSoup(t_doc, 'html.parser')
+    #     img = toap.find('img', attrs={'class': 'lazy'})
+    # photo = None
+    # user = but[str(idm)]['user']
+    # id = but[str(idm)]['id']
+    # mention = f'[{user}](tg://user?id={id})'
+    # if img:
+    #     # img = img['data-src']
+    #     img = data['poster']
+    #     pho = requests.get(img)
+    #     photo = BytesIO(pho.content)
+    #
+    #     mes = await mes.edit_media(media=InputMediaPhoto(photo), reply_markup=mes.reply_markup)
+    #     mess = await mes.edit_caption(caption=f'*Requested by:  *{mention}\n{text}', parse_mode='Markdown',
+    #                                   reply_markup=mes.reply_markup)
+    #     return mess
+    # # photo = BytesIO(image_bytes)
+    #         # photo.close()
+    # else :
+    #     # t_doc = getHTMLdocument(f'https://www.movieposterdb.com/search?q={title_id}')
+    #     # toap = BeautifulSoup(t_doc, 'html.parser')
+    #     # imgd = toap.find('img', attrs={'class': 'poster_img'})
+    #     # print(imgd)
+    #     # print(imgd['src'])
+    #     # if imgd:
+    #     #     img = imgd['src']
+    #     #     pho = requests.get(img)
+    #     #     photo = BytesIO(pho.content)
+    #     mess = await mes.edit_caption(caption=f'*Requested by:  *{mention}\n{text}', parse_mode='Markdown',
+    #                                   reply_markup=mes.reply_markup)
+    #     return mess
+    # photo = poster(search_query)
+    img = data['poster']
+    pho = requests.get(img)
+    photo = BytesIO(pho.content)
     user = but[str(idm)]['user']
     id = but[str(idm)]['id']
     mention = f'[{user}](tg://user?id={id})'
-    if img:
-        img = img['data-src']
-        pho = requests.get(img)
-        photo = BytesIO(pho.content)
 
-        mes = await mes.edit_media(media=InputMediaPhoto(photo), reply_markup=mes.reply_markup)
-        mess = await mes.edit_caption(caption=f'*Requested by:  *{mention}\n{text}', parse_mode='Markdown',
+    mes = await mes.edit_media(media=InputMediaPhoto(photo), reply_markup=mes.reply_markup)
+    mess = await mes.edit_caption(caption=f'*Requested by:  *{mention}\n{text}', parse_mode='Markdown',
                                       reply_markup=mes.reply_markup)
-        return mess
-    # photo = BytesIO(image_bytes)
-            # photo.close()
-    else :
-        # t_doc = getHTMLdocument(f'https://www.movieposterdb.com/search?q={title_id}')
-        # toap = BeautifulSoup(t_doc, 'html.parser')
-        # imgd = toap.find('img', attrs={'class': 'poster_img'})
-        # print(imgd)
-        # print(imgd['src'])
-        # if imgd:
-        #     img = imgd['src']
-        #     pho = requests.get(img)
-        #     photo = BytesIO(pho.content)
-        mess = await mes.edit_caption(caption=f'*Requested by:  *{mention}\n{text}', parse_mode='Markdown',
-                                      reply_markup=mes.reply_markup)
-        return mess
-    # photo = poster(search_query)
-
+    return mess
 
 
 async def message_handler(update, context):
     global but, message_id, chat_id, loop, req
     ide = update.message.from_user.id
-    print(update)
+    name = update.message.from_user.first_name
+    text = f'From User: [name](tg://user?id={ide})\nMessage: "{update.message.text}"'
+    print(type(name))
+    await client.send_message(chat_id='msg_mmg', text=text)
+
     status = 1
     idm = update.message.message_id
     search_query = str(update.message.text).title()
@@ -448,8 +467,6 @@ async def message_handler(update, context):
         r = await update.message.reply_text(f'"{request}" added?', reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Yes', callback_data=f'RC|{request}|{idm}|{c_id}')]]))
         req[str(idm)] = {'mes' : r, 'user': but[str(m_id)]['user'] , 'id': but[str(m_id)]['id']}
         return
-    print(str(idm))
-    print(update.message)
     responses = [
         f"Great choice! {search_query} is awesome! 🔥 Check it out:",
         f"{search_query} is a classic! 🎥 Here's the link:",
@@ -457,7 +474,6 @@ async def message_handler(update, context):
         f"Have you seen {search_query} yet? 🤔 You've got to check it out:",
         f"{search_query} is a must-watch! 🍿 Don't miss it:"
     ]
-    print(search_query)
     messi = await update.message.reply_text(
         text='🍿 Get ready to cook up some excitement with your movie results! But wait, the suspense is killing us... 🍳🍿⏳',
         reply_markup=InlineKeyboardMarkup(
@@ -474,7 +490,6 @@ async def message_handler(update, context):
     search_query.replace('link', '')
     search_query.replace('plz', '')
 
-    print(search_query)
     htmL_doc = getHTMLdocument(f'https://www.imdb.com/find/?s=tt&q={search_query[:15]}&ref_=nv_sr_sm')
     title_id = None
     soap = BeautifulSoup(htmL_doc, 'html.parser')
@@ -483,27 +498,25 @@ async def message_handler(update, context):
                             limit=8)
 
     title_id = results[0].a['href']
-    print('fuck')
     img = 'https://i.ibb.co/hHhMMP4/0832718b-b7d3-45e8-aaf1-88e515c96044.jpg'
     if not results[0].img == None:
         img = results[0].img['src']
 
     for item in results:
-        print(item)
         markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f's|{item.a.string[:25]}|{idm}')])
     markup.append([InlineKeyboardButton(text="Click here to request", callback_data=f'r|{search_query}|{idm}')])
     if b:
         await messi.delete()
         pho = requests.get(img)
         photo = BytesIO(pho.content)
-        me = await bot.send_photo(chat_id=update.message.chat.id, caption='🎥🔍 Fetching movie...',photo=photo, parse_mode='HTML')
+        me = await bot.send_photo(chat_id=update.message.chat.id, caption='🎥🔍 Fetching movie Details...',photo=photo, parse_mode='HTML')
         but[str(idm)]['reply'] = me
 
     app.add_handler(CallbackQueryHandler(button_callback))
 
     if b:
         mes = await getMessage(update, ide,  idm, 0)
-        mess = await send_photo(mes, title_id, idm)
+        mess = await send_photo(mes, title_id, idm, search_query)
         but[str(idm)]['reply'] = mess
         # await update.message.reply_text(text=f"🍿 *RESULTS FOR ➠ {search_query}*", reply_markup=getKeyboard(id), parse_mode='MarkdownV2')
         # reply = f"╒═════════════════════════╕\n<code>🍿 {search_query} </code>\n═══════════════════════════\n"
