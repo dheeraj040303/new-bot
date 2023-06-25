@@ -96,7 +96,7 @@ async def button_callback(update, context):
         user = f'[{user}](tg://user?id={id})'
         del req[str(idm)]
         await re.edit_text("Movie added.")
-        await bot.send_message(chat_id=qu[3], text=f'Hey!! {user}\n"{qu[1]}" movie is added to the database\nPlease search again...', parse_mode='Markdown')
+        await bot.send_message(chat_id=qu[3], text=f'Hey!! {user}\nYour request "{qu[1]}" is added to the database\nPlease search again...', parse_mode='Markdown')
     elif not str(user_id) == str(ide):
         await query.answer("Don't touch others property search on your own", show_alert=True)
     elif q == f'p':
@@ -117,7 +117,7 @@ async def button_callback(update, context):
         m = but[str(idm)]['reply']
         mention = f'[{user}](tg://user?id={id})'
         await m.delete()
-        await bot.send_message(chat_id=chat_id, text=f'🎉 {mention} Your request for "{qu[1]}" was successful! 🎉', parse_mode='Markdown')
+        await bot.send_message(chat_id=chat_id, text=f'- 🎉 {mention} Your request for "{qu[1]}" is sent to team\n- You will be notified once it is added\n- Till then bing some other movie', parse_mode='Markdown')
     else:
         chat_id = update.callback_query.message.chat.id
         m = but[str(idm )]['reply']
@@ -237,7 +237,7 @@ async def getMessage(update,ide,  rep, sug):
     sq = f'{q[:10]}...'.upper()
     if not rep:
         sq = update.message.text.upper()
-    entities = [[InlineKeyboardButton('How to download', url='https://t.me/how_to_download_movie_mmd/2')]]
+    entities = []
     for button in page_buttons:
         # response = requests.get(
         #     f'https://oggylink.com/api?api=d3cd560e0d296f93a4933b8ff33a04180f22a87d&url={button["url"]}')
@@ -301,6 +301,8 @@ async def send_initial(update, context):
 def get_movie_info(title_id, s):
     data = requests.get(f' http://www.omdbapi.com/?i=tt3896198&apikey=1357bb40&t={s}')
     data = data.json()
+    if data['Response'] == 'False':
+        return {'text': f"\n🎥 *Title:* {s}", 'poster': None}
     print(data)
     # info_doc = getHTMLdocument(f'https://www.imdb.com/{title_id}')
     # soap_d = BeautifulSoup(info_doc, 'html.parser')
@@ -374,7 +376,7 @@ async def get_results(search_query):
                             trun = 30 - len(current_line)
                             text = f'{title[:trun]}-{current_line}'
                             b.append({'text': text,
-                                      'url': f'https://linkerin.vercel.app/blog/63c3f2375ec080775ec71186?q={link}'})
+                                      'url': f'https://afly.in/st?api=81b20cd29e2900adda0e54dc7083cdfd62a30594&url={link}'})
     return b
 
 
@@ -435,14 +437,15 @@ async def send_photo(mes, title_id, idm, s):
     #                                   reply_markup=mes.reply_markup)
     #     return mess
     # photo = poster(search_query)
-    img = data['poster']
-    pho = requests.get(img)
-    photo = BytesIO(pho.content)
+
     user = but[str(idm)]['user']
     id = but[str(idm)]['id']
     mention = f'[{user}](tg://user?id={id})'
-
-    mes = await mes.edit_media(media=InputMediaPhoto(photo), reply_markup=mes.reply_markup)
+    if data['poster']:
+        img = data['poster']
+        pho = requests.get(img)
+        photo = BytesIO(pho.content)
+        mes = await mes.edit_media(media=InputMediaPhoto(photo), reply_markup=mes.reply_markup)
     mess = await mes.edit_caption(caption=f'*Requested by:  *{mention}\n{text}', parse_mode='Markdown',
                                       reply_markup=mes.reply_markup)
     return mess
@@ -482,7 +485,7 @@ async def message_handler(update, context):
     b = await get_results(search_query)
     but[str(idm)] = {'a_b': b, 'c_p': 0, 'ide':ide, 'user': update.message.from_user.first_name, 'id': update.message.from_user.id}
     me = None
-    markup = []
+    markup = [[InlineKeyboardButton(text="Click here to request", callback_data=f'r|{search_query}|{idm}')]]
 
     search_query.replace("terabox", "")
     search_query.replace('hindi', '')
@@ -504,7 +507,6 @@ async def message_handler(update, context):
 
     for item in results:
         markup.append([InlineKeyboardButton(text=item.a.string, callback_data=f's|{item.a.string[:25]}|{idm}')])
-    markup.append([InlineKeyboardButton(text="Click here to request", callback_data=f'r|{search_query}|{idm}')])
     if b:
         await messi.delete()
         pho = requests.get(img)
@@ -516,7 +518,7 @@ async def message_handler(update, context):
 
     if b:
         mes = await getMessage(update, ide,  idm, 0)
-        mess = await send_photo(mes, title_id, idm, search_query)
+        mess = await send_photo(mes, title_id, idm, results[0].a.string)
         but[str(idm)]['reply'] = mess
         # await update.message.reply_text(text=f"🍿 *RESULTS FOR ➠ {search_query}*", reply_markup=getKeyboard(id), parse_mode='MarkdownV2')
         # reply = f"╒═════════════════════════╕\n<code>🍿 {search_query} </code>\n═══════════════════════════\n"
