@@ -4,7 +4,7 @@ micros:
   - name: bot
     src: ./
     engine: python3.9
-    run: python ./api/app.py
+    run: python ./api/main.py
     primary: true
     commands:
         - pip3 install -r requirements.txt

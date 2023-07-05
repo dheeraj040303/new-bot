@@ -135,7 +135,7 @@ async def button_callback(update, context):
                                       photo=photo, parse_mode='HTML')
             but[str(idm )]['reply'] = me
             me = await getMessage(update, ide, idm , 1)
-            me = await send_photo(me, t_id, idm)
+            me = await send_photo(me, t_id, idm, qu[1])
             but[str(idm  )]['reply'] = me
             task = asyncio.create_task(delete_message(idm , me))
 
@@ -376,7 +376,7 @@ async def get_results(search_query):
                             trun = 30 - len(current_line)
                             text = f'{title[:trun]}-{current_line}'
                             b.append({'text': text,
-                                      'url': f'https://afly.in/st?api=81b20cd29e2900adda0e54dc7083cdfd62a30594&url={link}'})
+                                      'url': f'https://omegalinks.in/st?api=cc22653e6e274fdad4389fe50286d5e53eb37731&url={link}'})
     return b
 
 
@@ -458,7 +458,6 @@ async def message_handler(update, context):
     text = f'From User: [name](tg://user?id={ide})\nMessage: "{update.message.text}"'
     print(type(name))
     await client.send_message(chat_id='msg_mmg', text=text)
-
     status = 1
     idm = update.message.message_id
     search_query = str(update.message.text).title()
@@ -534,7 +533,7 @@ async def message_handler(update, context):
         task = asyncio.create_task(delete_message(idm, mess))
     else:
         await messi.delete()
-        meu = await update.message.reply_text(text="🤔🎥 Can't find the movie. What's the name?" , reply_markup=InlineKeyboardMarkup(markup))
+        meu = await update.message.reply_text(text="🤔🎥 Can't find the movie.\nDid you mean any of these?\nIf not request the movie." , reply_markup=InlineKeyboardMarkup(markup))
         but[str(idm)]['reply'] = meu
 
 
